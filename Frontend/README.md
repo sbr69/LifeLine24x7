@@ -30,22 +30,20 @@ npm run preview
 Frontend/
 ├── src/
 │   ├── components/
-│   │   ├── common/          # Reusable UI components
-│   │   │   ├── Button.tsx
-│   │   │   ├── SocialButton.tsx
-│   │   │   └── Divider.tsx
-│   │   └── forms/           # Form components
-│   │       └── InputField.tsx
+│   │   └── assets/          # Static assets (images)
+│   │       └── loginBg.png
 │   ├── pages/
-│   │   ├── auth/            # Authentication pages
-│   │   │   └── Login.tsx
-│   │   └── dashboard/       # Dashboard pages
-│   │       └── Dashboard.tsx
+│   │   └── auth/            # Authentication pages
+│   │       ├── Login.tsx
+│   │       ├── Register.tsx
+│   │       └── index.ts
 │   ├── types/               # TypeScript definitions
-│   │   └── auth.types.ts
-│   ├── App.tsx              # Root component
+│   │   ├── auth.types.ts
+│   │   └── index.ts
+│   ├── App.tsx              # Root component with routing
 │   ├── main.tsx             # Entry point
-│   └── index.css            # Global styles
+│   ├── index.css            # Global styles & animations
+│   └── vite-env.d.ts        # Vite type declarations
 ├── index.html
 ├── package.json
 ├── tsconfig.json

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState({
@@ -7,7 +8,17 @@ const Login: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  
+  // Initialize theme from localStorage, default to dark mode (true)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'light' ? false : true;
+  });
+
+  // Persist theme changes to localStorage
+  useEffect(() => {
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -27,18 +38,18 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className={`flex min-h-screen w-full overflow-hidden ${isDarkMode ? 'bg-[#111811]' : 'bg-white'}`}>
+    <div className={`flex min-h-screen w-full overflow-hidden ${isDarkMode ? 'bg-[#111811]' : 'bg-white'} relative`}>
       {/* Theme Toggle Button */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}
-        className={`fixed top-6 left-6 z-50 flex items-center justify-center w-12 h-12 rounded-full transition-all shadow-lg ${
+        className={`absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-all shadow-lg ${
           isDarkMode 
             ? 'bg-[#1c271c] border border-[#3b543b] text-[#13ec13] hover:bg-[#152015]' 
             : 'bg-white border border-slate-200 text-primary hover:bg-slate-50'
         }`}
         aria-label="Toggle theme"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {isDarkMode ? (
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           ) : (
@@ -57,17 +68,17 @@ const Login: React.FC = () => {
           src="/src/components/assets/loginBg.png"
           alt="Abstract blurry hospital corridor with medical lighting"
         />
-        <div className={`absolute inset-0 bg-gradient-to-t ${
+        <div className={`absolute inset-0 bg-linear-to-t ${
           isDarkMode ? 'from-[#111811] via-[#111811]/30 to-transparent' : 'from-emerald-50 via-emerald-50/30 to-transparent'
         }`}></div>
         <div className="relative z-10 max-w-lg p-12 text-center">
           <div className="mb-6 flex justify-center">
-            <div className={`flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm ${
+            <div className={`flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm animate-pulse-slow ${
               isDarkMode 
-                ? 'bg-[#13ec13]/10 border border-[#13ec13]/20 text-[#13ec13]' 
-                : 'bg-white/60 border border-green-600/20 text-green-600 shadow-sm'
-            }`}>
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ? 'bg-[#13ec13]/10 border border-[#13ec13]/20 text-[#13ec13] shadow-[0_0_40px_rgba(19,236,19,0.4),0_0_80px_rgba(19,236,19,0.2)] hover:shadow-[0_0_60px_rgba(19,236,19,0.6),0_0_100px_rgba(19,236,19,0.3)]' 
+                : 'bg-white/60 border border-green-600/20 text-green-600 shadow-[0_0_30px_rgba(22,163,74,0.3)] hover:shadow-[0_0_45px_rgba(22,163,74,0.5)]'
+            } transition-all duration-500`}>
+              <svg className="w-12 h-12 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </div>
@@ -85,20 +96,27 @@ const Login: React.FC = () => {
 
       {/* Right Side: Login Form */}
       <div className={`w-full lg:w-1/2 flex flex-col items-center justify-center px-4 py-12 relative ${
-        isDarkMode ? 'bg-[#111811]' : 'bg-white'
+        isDarkMode ? 'bg-[#0b1a0b]' : 'bg-white'
       }`}>
-        <div className="w-full max-w-[480px] flex flex-col gap-2 relative z-10">
+        {/* Background Pattern for light mode */}
+        <div className={`absolute inset-0 pointer-events-none ${
+          isDarkMode ? 'opacity-0' : 'opacity-[0.03]'
+        }`} style={{ 
+          backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23000000\" fill-opacity=\"1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"
+        }}></div>
+
+        <div className="w-full max-w-120 flex flex-col gap-2 relative z-10">
           {/* Logo & Header */}
           <div className="mb-8 flex flex-col gap-6">
             <div className={`flex items-center gap-4 ${
               isDarkMode ? 'text-white' : 'text-slate-900'
             }`}>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm ${
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm group cursor-pointer ${
                 isDarkMode 
-                  ? 'bg-[#13ec13]/10 border-[#13ec13]/20 text-[#13ec13]' 
-                  : 'bg-emerald-50 border-green-600/20 text-green-600 shadow-[0_0_15px_-3px_rgba(22,163,74,0.3)]'
-              }`}>
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24">
+                  ? 'bg-[#13ec13]/10 border-[#13ec13]/20 text-[#13ec13] shadow-[0_0_25px_rgba(19,236,19,0.3)] hover:shadow-[0_0_40px_rgba(19,236,19,0.6),0_0_60px_rgba(19,236,19,0.3)]' 
+                  : 'bg-emerald-50 border-green-600/20 text-green-600 shadow-[0_0_15px_-3px_rgba(22,163,74,0.3)] hover:shadow-[0_0_30px_rgba(22,163,74,0.5)]'
+              } transition-all duration-500 hover:scale-110`}>
+                <svg className="w-7 h-7 group-hover:animate-pulse" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                 </svg>
               </div>
@@ -133,8 +151,8 @@ const Login: React.FC = () => {
                 <input
                   className={`flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl focus:outline-0 focus:ring-0 border h-14 px-4 py-4 pl-12 text-base font-normal leading-normal transition-all ${
                     isDarkMode 
-                      ? 'text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d]' 
-                      : 'text-slate-900 border-slate-200 bg-slate-50 focus:border-green-600 focus:bg-white placeholder:text-slate-400'
+                      ? 'text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80' 
+                      : 'text-slate-900 border-slate-200 bg-slate-50 focus:border-green-600 focus:bg-white placeholder:text-slate-400 focus:shadow-[0_0_15px_rgba(22,163,74,0.15)] hover:border-slate-300'
                   }`}
                   placeholder="mail@hospital.domain"
                   type="email"
@@ -176,8 +194,8 @@ const Login: React.FC = () => {
                 <input
                   className={`flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl focus:outline-0 focus:ring-0 border h-14 px-4 py-4 pl-12 pr-12 text-base font-normal leading-normal transition-all ${
                     isDarkMode 
-                      ? 'text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d]' 
-                      : 'text-slate-900 border-slate-200 bg-slate-50 focus:border-green-600 focus:bg-white placeholder:text-slate-400'
+                      ? 'text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80' 
+                      : 'text-slate-900 border-slate-200 bg-slate-50 focus:border-green-600 focus:bg-white placeholder:text-slate-400 focus:shadow-[0_0_15px_rgba(22,163,74,0.15)] hover:border-slate-300'
                   }`}
                   placeholder="Enter your password"
                   type={showPassword ? 'text' : 'password'}
@@ -221,13 +239,16 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 active:scale-[0.98] transition-all text-base font-bold leading-normal tracking-[0.015em] disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 active:scale-[0.98] transition-all duration-300 text-base font-bold leading-normal tracking-[0.015em] disabled:opacity-50 disabled:cursor-not-allowed relative group ${
                   isDarkMode 
-                    ? 'bg-[#13ec13] hover:bg-[#3bf03b] text-[#111811] shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:shadow-[0_0_30px_rgba(19,236,19,0.4)]' 
-                    : 'bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(22,163,74,0.3)] hover:shadow-[0_0_30px_rgba(22,163,74,0.5)]'
+                    ? 'bg-[#13ec13] hover:bg-[#3bf03b] text-[#111811] shadow-[0_0_30px_rgba(19,236,19,0.4),0_0_60px_rgba(19,236,19,0.2)] hover:shadow-[0_0_50px_rgba(19,236,19,0.7),0_0_100px_rgba(19,236,19,0.4)] hover:scale-105' 
+                    : 'bg-green-600 hover:bg-green-500 text-white shadow-[0_0_25px_rgba(22,163,74,0.4),0_0_50px_rgba(22,163,74,0.2)] hover:shadow-[0_0_40px_rgba(22,163,74,0.6),0_0_80px_rgba(22,163,74,0.3)] hover:scale-105'
                 }`}
               >
-                <span className="truncate">{isLoading ? 'Logging in...' : 'Login'}</span>
+                <span className="truncate relative z-10">{isLoading ? 'Logging in...' : 'Login'}</span>
+                <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isDarkMode ? 'bg-linear-to-r from-[#13ec13]/20 via-[#3bf03b]/30 to-[#13ec13]/20' : 'bg-linear-to-r from-green-400/20 via-green-500/30 to-green-400/20'
+                } animate-shimmer`}></div>
               </button>
             </div>
           </form>
@@ -238,11 +259,11 @@ const Login: React.FC = () => {
               isDarkMode ? 'text-[#9db99d]' : 'text-slate-500'
             }`}>
               Don't have an account?
-              <a className={`font-bold hover:underline ml-1 ${
+              <Link to="/register" className={`font-bold hover:underline ml-1 ${
                 isDarkMode ? 'text-[#13ec13]' : 'text-green-600'
-              }`} href="#">
+              }`}>
                 Register
-              </a>
+              </Link>
             </p>
             <div className={`mt-8 flex justify-center gap-6 ${
               isDarkMode ? 'opacity-50' : 'opacity-70'
