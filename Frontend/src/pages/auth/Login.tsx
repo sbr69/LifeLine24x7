@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
   
   // Initialize theme from localStorage, default to dark mode (true)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -20,18 +23,78 @@ const Login: React.FC = () => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCredentials({ ...credentials, email: value });
+    setEmailError('');
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
+    setEmailError('');
+
+    // Validate email format
+    if (!validateEmail(credentials.email)) {
+      setEmailError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      // TODO: Implement login logic here
-      console.log('Login credentials:', credentials);
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Call backend API to authenticate
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        console.log('Login response data:', data.data);
+        console.log('Bed data from API:', {
+          icu_beds: data.data.icu_beds,
+          hdu_beds: data.data.hdu_beds,
+          general_beds: data.data.general_beds
+        });
+        
+        // Store authentication data in localStorage
+        localStorage.setItem('authToken', 'authenticated-user-token');
+        localStorage.setItem('userEmail', data.data.email);
+        localStorage.setItem('hospitalName', data.data.hospital_name);
+        localStorage.setItem('hospitalId', data.data.id);
+        localStorage.setItem('icuBeds', data.data.icu_beds);
+        localStorage.setItem('hduBeds', data.data.hdu_beds);
+        localStorage.setItem('generalBeds', data.data.general_beds);
+        
+        console.log('Stored in localStorage:', {
+          icuBeds: localStorage.getItem('icuBeds'),
+          hduBeds: localStorage.getItem('hduBeds'),
+          generalBeds: localStorage.getItem('generalBeds')
+        });
+        
+        // Redirect to dashboard overview
+        navigate('/overview');
+      } else {
+        // Handle authentication error
+        setError(data.message || 'Invalid email or password');
+      }
     } catch (error) {
       console.error('Login error:', error);
+      setError('Unable to connect to server. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +122,7 @@ const Login: React.FC = () => {
       </button>
 
       {/* Left Side: Visual Hero */}
-      <div className={`hidden lg:flex lg:w-1/2 relative ${isDarkMode ? 'bg-[#102210]' : 'bg-emerald-50'} items-center justify-center overflow-hidden`}>
+      <div className={`hidden lg:flex lg:w-1/2 relative ${isDarkMode ? 'bg-[#111f10]' : 'bg-emerald-50'} items-center justify-center overflow-hidden`}>
         {/* Background Image */}
         <img
           className={`absolute inset-0 h-full w-full object-cover hover:scale-105 transition-transform duration-2000 ${
@@ -69,7 +132,7 @@ const Login: React.FC = () => {
           alt="Abstract blurry hospital corridor with medical lighting"
         />
         <div className={`absolute inset-0 bg-linear-to-t ${
-          isDarkMode ? 'from-[#111811] via-[#111811]/30 to-transparent' : 'from-emerald-50 via-emerald-50/30 to-transparent'
+          isDarkMode ? 'from-[#111f10] via-[#111f10]/30 to-transparent' : 'from-emerald-50 via-emerald-50/30 to-transparent'
         }`}></div>
         <div className="relative z-10 max-w-lg p-12 text-center">
           <div className="mb-6 flex justify-center">
@@ -96,7 +159,7 @@ const Login: React.FC = () => {
 
       {/* Right Side: Login Form */}
       <div className={`w-full lg:w-1/2 flex flex-col items-center justify-center px-4 py-12 relative ${
-        isDarkMode ? 'bg-[#0b1a0b]' : 'bg-white'
+        isDarkMode ? 'bg-[#111811]' : 'bg-white'
       }`}>
         {/* Background Pattern for light mode */}
         <div className={`absolute inset-0 pointer-events-none ${
@@ -138,6 +201,20 @@ const Login: React.FC = () => {
 
           {/* Form Inputs */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Error Message */}
+            {error && (
+              <div className={`flex items-center gap-3 p-4 rounded-xl border ${
+                isDarkMode 
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                  : 'bg-red-50 border-red-200 text-red-600'
+              }`}>
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            )}
+
             {/* Email Input */}
             <label className="flex flex-col w-full group">
               <p className={`text-base font-medium leading-normal pb-2 transition-colors ${
@@ -150,14 +227,16 @@ const Login: React.FC = () => {
               <div className="relative">
                 <input
                   className={`flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl focus:outline-0 focus:ring-0 border h-14 px-4 py-4 pl-12 text-base font-normal leading-normal transition-all ${
-                    isDarkMode 
+                    emailError
+                      ? 'border-red-500 bg-red-500/5 focus:border-red-500'
+                      : isDarkMode 
                       ? 'text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80' 
                       : 'text-slate-900 border-slate-200 bg-slate-50 focus:border-green-600 focus:bg-white placeholder:text-slate-400 focus:shadow-[0_0_15px_rgba(22,163,74,0.15)] hover:border-slate-300'
                   }`}
                   placeholder="mail@hospital.domain"
-                  type="email"
+                  type="text"
                   value={credentials.email}
-                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                  onChange={handleEmailChange}
                   required
                 />
                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
@@ -170,6 +249,14 @@ const Login: React.FC = () => {
                   </svg>
                 </div>
               </div>
+              {emailError && (
+                <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {emailError}
+                </p>
+              )}
             </label>
 
             {/* Password Input */}

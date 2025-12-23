@@ -12,8 +12,11 @@ export default {
         "primary-dark": "#0fa80f",
         "background-light": "#f8fafc",
         "background-dark": "#102210",
-        "surface-dark": "#1a2e1a",
+        "surface-dark": "#162916",
+        "surface-darker": "#0a160a",
         "input-dark": "#142614",
+        "danger": "#ef4444",
+        "warning": "#f59e0b",
       },
       fontFamily: {
         "display": ["Manrope", "sans-serif"]
