@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login, Register } from './pages/auth';
-import { Dashboard, NewAdmission } from './pages/dashboard';
+import { Dashboard, NewAdmission, Staff } from './pages/dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -18,10 +18,18 @@ function App() {
           } 
         />
         <Route 
-          path="/dashboard/new-admission" 
+          path="/new-admission" 
           element={
             <ProtectedRoute>
               <NewAdmission />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/staff" 
+          element={
+            <ProtectedRoute>
+              <Staff />
             </ProtectedRoute>
           } 
         />

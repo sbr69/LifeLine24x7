@@ -86,7 +86,11 @@ const determineCondition = (severityScore) => {
  * @route POST /api/admissions
  */
 const createAdmission = async (req, res, next) => {
+  const client = await pool.connect();
+  
   try {
+    await client.query('BEGIN');
+    
     const {
       name,
       age,
@@ -105,6 +109,7 @@ const createAdmission = async (req, res, next) => {
 
     // Validation
     if (!name || !age || !gender) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Patient name, age, and gender are required fields'
@@ -114,6 +119,7 @@ const createAdmission = async (req, res, next) => {
     // Validate gender
     const validGenders = ['male', 'female', 'other'];
     if (!validGenders.includes(gender.toLowerCase())) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Gender must be one of: male, female, other'
@@ -122,6 +128,7 @@ const createAdmission = async (req, res, next) => {
 
     // Validate age
     if (age <= 0 || age > 150) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Age must be between 1 and 150'
@@ -130,6 +137,7 @@ const createAdmission = async (req, res, next) => {
 
     // Validate vitals if provided
     if (heartRate && (heartRate <= 0 || heartRate > 300)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Heart rate must be between 1 and 300 bpm'
@@ -137,6 +145,7 @@ const createAdmission = async (req, res, next) => {
     }
 
     if (spo2 && (spo2 < 0 || spo2 > 100)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'SpO2 must be between 0 and 100%'
@@ -144,6 +153,7 @@ const createAdmission = async (req, res, next) => {
     }
 
     if (respRate && (respRate <= 0 || respRate > 100)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Respiratory rate must be between 1 and 100 bpm'
@@ -151,19 +161,51 @@ const createAdmission = async (req, res, next) => {
     }
 
     if (temperature && (temperature < 20.0 || temperature > 50.0)) {
+    // Generate unique patient ID (5 digits)
+    const patientIdResult = await client.query('SELECT nextval(\'patient_id_seq\') as patient_id');
+    const patientId = patientIdResult.rows[0].patient_id;
+
+    // Calculate severity score first to determine bed type
+    const vitals = {
+      heartRate,
+      spo2,
+      respRate,
+      temperature,
+      bpSystolic
+    };
+    const severityScore = calculateSeverityScore(vitals);
+    const condition = determineCondition(severityScore);
+    
+    // Determine bed type based on severity
+    let bedType = 'GENERAL';
+    if (severityScore >= 7 || condition === 'critical') {
+      bedType = 'ICU';
+    } else if (severityScore >= 4 || condition === 'serious') {
+      bedType = 'HDU';
+    }
+
+    // Find an available bed of the required type
+    const bedResult = await client.query(
+      'SELECT bed_id FROM beds WHERE bed_type = $1 AND is_available = TRUE ORDER BY bed_number LIMIT 1 FOR UPDATE',
+      [bedType]
+    );
+
+    if (bedResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
-        message: 'Temperature must be between 20.0 and 50.0°C'
+        message: `No available ${bedType} beds. Please try a different bed type or discharge a patient.`
       });
     }
 
-    // Generate unique patient ID (5 digits)
-    const patientIdResult = await pool.query('SELECT nextval(\'patient_id_seq\') as patient_id');
-    const patientId = patientIdResult.rows[0].patient_id;
+    const bedId = bedResult.rows[0].bed_id;
+      return res.status(400).json({
+        success: false,
+        message: `No available ${bedType} beds. Please try a different bed type or discharge a patient.`
+      });
+    }
 
-    // Generate bed ID (sequential 2-3 digits)
-    const bedIdResult = await pool.query('SELECT nextval(\'bed_id_seq\') as bed_id');
-    const bedId = bedIdResult.rows[0].bed_id;
+    const bedId = bedResult.rows[0].bed_id;
 
     // Get formatted admission date
     const admissionDate = getFormattedDate();
@@ -177,17 +219,6 @@ const createAdmission = async (req, res, next) => {
     // Get current timestamp for measured_time
     const measuredTime = new Date();
 
-    // Calculate severity score based on vitals
-    const vitals = {
-      heartRate,
-      spo2,
-      respRate,
-      temperature,
-      bpSystolic
-    };
-    const severityScore = calculateSeverityScore(vitals);
-    const condition = determineCondition(severityScore);
-    
     // Assign doctor based on severity
     const doctorList = ['Dr. Strange', 'Dr. House', 'Dr. Grey', 'Dr. Shepherd'];
     const doctor = doctorList[Math.floor(Math.random() * doctorList.length)];
@@ -230,18 +261,22 @@ const createAdmission = async (req, res, next) => {
       respRate || null,
       temperature || null,
       JSON.stringify(bloodPressure),
-      measuredTime,
-      presentingAilment || null,
-      medicalHistory || null,
-      clinicalNotes || null,
-      labResults || null,
-      severityScore,
-      condition,
-      doctor
     ];
 
-    const result = await pool.query(insertQuery, values);
+    const result = await client.query(insertQuery, values);
     const admittedPatient = result.rows[0];
+
+    // Mark bed as occupied
+    await client.query(
+      `UPDATE beds 
+       SET is_available = FALSE, 
+           current_patient_id = $1,
+           last_occupied_at = CURRENT_TIMESTAMP
+       WHERE bed_id = $2`,
+      [patientId, bedId]
+    );
+
+    await client.query('COMMIT');
 
     console.log(`✅ New patient admitted: ${name} (ID: ${patientId}, Bed: ${bedId})`);
 
@@ -253,8 +288,11 @@ const createAdmission = async (req, res, next) => {
     });
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('❌ Error creating admission:', error.message);
     next(error);
+  } finally {
+    client.release();
   }
 };
 
@@ -513,11 +551,76 @@ const getBedAvailability = async (req, res, next) => {
   }
 };
 
+/**
+ * Get dashboard statistics
+ * @route GET /api/admissions/stats/dashboard
+ */
+const getDashboardStats = async (req, res, next) => {
+  try {
+    // Get total admitted patients count
+    const totalQuery = 'SELECT COUNT(*) as total_patients FROM admitted_patients';
+    const totalResult = await pool.query(totalQuery);
+    const totalPatients = parseInt(totalResult.rows[0].total_patients);
+
+    // Get critical patients count (severity_score >= 8)
+    const criticalQuery = 'SELECT COUNT(*) as critical_count FROM admitted_patients WHERE severity_score >= 8';
+    const criticalResult = await pool.query(criticalQuery);
+    const criticalPatients = parseInt(criticalResult.rows[0].critical_count);
+
+    // Get bed occupancy by ward type
+    const bedOccupancyQuery = `
+      SELECT 
+        COUNT(CASE WHEN severity_score >= 8 THEN 1 END) as icu_occupied,
+        COUNT(CASE WHEN severity_score >= 5 AND severity_score < 8 THEN 1 END) as hdu_occupied,
+        COUNT(CASE WHEN severity_score < 5 THEN 1 END) as general_occupied
+      FROM admitted_patients
+    `;
+    const bedOccupancyResult = await pool.query(bedOccupancyQuery);
+    const bedOccupancy = bedOccupancyResult.rows[0];
+
+    // Get patients admitted today
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    const todayQuery = `
+      SELECT COUNT(*) as admitted_today 
+      FROM admitted_patients 
+      WHERE admission_date = $1
+    `;
+    const todayResult = await pool.query(todayQuery, [todayStr]);
+    const admittedToday = parseInt(todayResult.rows[0].admitted_today);
+
+    res.json({
+      success: true,
+      message: 'Dashboard statistics retrieved successfully',
+      data: {
+        totalPatients,
+        criticalPatients,
+        admittedToday,
+        bedOccupancy: {
+          icuOccupied: parseInt(bedOccupancy.icu_occupied),
+          hduOccupied: parseInt(bedOccupancy.hdu_occupied),
+          generalOccupied: parseInt(bedOccupancy.general_occupied)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching dashboard stats:', error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   createAdmission,
   getAllAdmissions,
   getAdmissionById,
   updateVitals,
   deleteAdmission,
-  getBedAvailability
+  getBedAvailability,
+  getDashboardStats
 };

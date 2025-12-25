@@ -54,6 +54,13 @@ router.get('/', admissionsController.getAllAdmissions);
 router.get('/beds/availability', admissionsController.getBedAvailability);
 
 /**
+ * @route   GET /api/admissions/stats/dashboard
+ * @desc    Get dashboard statistics (total patients, critical patients, bed occupancy)
+ * @access  Public (should be protected with authentication in production)
+ */
+router.get('/stats/dashboard', admissionsController.getDashboardStats);
+
+/**
  * @route   GET /api/admissions/:patientId
  * @desc    Get a single patient admission by ID
  * @access  Public (should be protected with authentication in production)

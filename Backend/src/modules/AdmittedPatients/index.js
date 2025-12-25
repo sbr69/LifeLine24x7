@@ -8,10 +8,12 @@
  */
 
 const admissionsRoutes = require('./routes/admissionsRoutes');
+const bedsRoutes = require('./routes/bedsRoutes');
 const { initAdmittedPatientsDb, resetAdmittedPatientsDb } = require('./models/initAdmittedPatientsDb');
 
 module.exports = {
   admissionsRoutes,
+  bedsRoutes,
   initAdmittedPatientsDb,
   resetAdmittedPatientsDb
 };

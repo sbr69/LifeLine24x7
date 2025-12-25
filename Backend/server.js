@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const { errorHandler, notFound, requestLogger } = require('./src/middleware/errorHandler');
 const authRoutes = require('./src/modules/auth');
-const { admissionsRoutes } = require('./src/modules/AdmittedPatients');
+const { admissionsRoutes, bedsRoutes } = require('./src/modules/AdmittedPatients');
 
 
 const app = express();
@@ -37,6 +37,7 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admissions', admissionsRoutes);
+app.use('/api/admissions/beds', bedsRoutes);
 
 // Error handling
 app.use(notFound);

@@ -77,6 +77,21 @@ export interface BedAvailabilityResponse {
   };
 }
 
+export interface DashboardStatsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    totalPatients: number;
+    criticalPatients: number;
+    admittedToday: number;
+    bedOccupancy: {
+      icuOccupied: number;
+      hduOccupied: number;
+      generalOccupied: number;
+    };
+  };
+}
+
 /**
  * Create a new patient admission
  */
@@ -155,6 +170,25 @@ export const getBedAvailability = async (): Promise<BedAvailabilityResponse> => 
     return result;
   } catch (error) {
     console.error('Error fetching bed availability:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get dashboard statistics
+ */
+export const getDashboardStats = async (): Promise<DashboardStatsResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admissions/stats/dashboard`);
+    const result: DashboardStatsResponse = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to fetch dashboard stats');
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
     throw error;
   }
 };

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS admitted_patients (
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female', 'other')),
     
     -- Bed Allocation
-    bed_id SMALLINT NOT NULL CHECK (bed_id >= 10 AND bed_id <= 999),
+    bed_id VARCHAR(10) NOT NULL, -- Format: ICU-01, HDU-01, GEN-01
     
     -- Admission Date
     admission_date VARCHAR(20) NOT NULL, -- Format: "Dec 24, 2025"
@@ -57,6 +57,11 @@ CREATE TABLE IF NOT EXISTS admitted_patients (
 -- Index on bed_id for quick bed allocation queries
 CREATE INDEX IF NOT EXISTS idx_admitted_patients_bed_id 
 ON admitted_patients(bed_id);
+
+-- Foreign key constraint to beds table (added after beds table is created)
+-- ALTER TABLE admitted_patients 
+-- ADD CONSTRAINT fk_admitted_patients_bed 
+-- FOREIGN KEY (bed_id) REFERENCES beds(bed_id) ON DELETE RESTRICT;
 
 -- Index on admission_date for temporal queries
 CREATE INDEX IF NOT EXISTS idx_admitted_patients_admission_date 

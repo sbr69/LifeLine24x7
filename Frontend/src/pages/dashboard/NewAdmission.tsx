@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createAdmission, getBedAvailability, type AdmissionPayload } from '../../services/admissionService';
+import { createAdmission, getBedAvailability, getAllAdmissions, type AdmissionPayload } from '../../services/admissionService';
+import { calculateSeverityScore as calculateSeverity } from './SeverityScore';
 
 interface VitalsData {
   heartRate: string;
@@ -47,8 +48,11 @@ const NewAdmission: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [bedAvailability, setBedAvailability] = useState<{
-    occupiedBeds: number;
-    availableBedRange: string;
+    allocatedBed: string | null;
+    severityScore: number;
+    recommendedWard: string;
+    status: 'available' | 'waiting' | 'shifted' | 'alert';
+    message: string;
   } | null>(null);
 
   const handleVitalChange = (field: keyof VitalsData, value: string) => {
@@ -125,21 +129,154 @@ const NewAdmission: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setBedAvailability(null);
 
-      const result = await getBedAvailability();
+      // Calculate severity score using the imported function
+      const vitalSigns = {
+        heartRate: vitals.heartRate ? parseInt(vitals.heartRate) : undefined,
+        spo2: vitals.spo2 ? parseInt(vitals.spo2) : undefined,
+        respRate: vitals.respRate ? parseInt(vitals.respRate) : undefined,
+        temperature: vitals.temperature ? parseFloat(vitals.temperature) : undefined,
+        bpSystolic: vitals.bpSystolic ? parseInt(vitals.bpSystolic) : undefined,
+        bpDiastolic: vitals.bpDiastolic ? parseInt(vitals.bpDiastolic) : undefined,
+      };
+      
+      const severityResult = calculateSeverity(vitalSigns);
+      const severityScore = severityResult.score;
+      
+      // Fetch all admitted patients to get occupied beds
+      const admissionsResult = await getAllAdmissions({ limit: 1000 });
+      const occupiedBeds = new Set(admissionsResult.data.map(patient => patient.bed_id.toString()));
+      
+      // Get bed configuration from localStorage
+      const icuBeds = parseInt(localStorage.getItem('icuBeds') || '0');
+      const hduBeds = parseInt(localStorage.getItem('hduBeds') || '0');
+      const generalBeds = parseInt(localStorage.getItem('generalBeds') || '0');
 
-      if (result.success) {
-        setBedAvailability({
-          occupiedBeds: result.data.occupiedBeds,
-          availableBedRange: result.data.availableBedRange,
-        });
+      // Find next available bed sequentially
+      const findNextAvailableBed = (prefix: string, totalBeds: number): string | null => {
+        for (let i = 1; i <= totalBeds; i++) {
+          const bedId = `${prefix}-${i.toString().padStart(2, '0')}`;
+          if (!occupiedBeds.has(bedId)) {
+            return bedId;
+          }
+        }
+        return null;
+      };
+
+      let allocatedBed: string | null = null;
+      let status: 'available' | 'waiting' | 'shifted' | 'alert' = 'available';
+      let message = '';
+      let recommendedWard = '';
+
+      // Bed allocation logic based on severity score
+      if (severityScore >= 0 && severityScore <= 2) {
+        // Low severity - General Ward
+        recommendedWard = 'General';
+        allocatedBed = findNextAvailableBed('GEN', generalBeds);
         
-        console.log('Bed availability:', result.data);
+        if (!allocatedBed) {
+          status = 'waiting';
+          message = 'General bed not available. Patient will be placed in waiting list.';
+        } else {
+          message = `Patient will be admitted to General Ward (${allocatedBed}).`;
+        }
+      } else if (severityScore >= 3 && severityScore <= 4) {
+        // Moderate severity - General Ward preferred, HDU as backup
+        recommendedWard = 'General';
+        allocatedBed = findNextAvailableBed('GEN', generalBeds);
+        
+        if (!allocatedBed) {
+          // Try HDU
+          allocatedBed = findNextAvailableBed('HDU', hduBeds);
+          if (allocatedBed) {
+            status = 'shifted';
+            recommendedWard = 'HDU';
+            message = `General bed not available. Patient shifted to HDU (${allocatedBed}).`;
+          } else {
+            status = 'waiting';
+            message = 'No beds available in General Ward or HDU. Patient will be placed in waiting list.';
+          }
+        } else {
+          message = `Patient will be admitted to General Ward (${allocatedBed}).`;
+        }
+      } else if (severityScore >= 5 && severityScore <= 7) {
+        // High severity - HDU preferred, ICU or General as backup
+        recommendedWard = 'HDU';
+        allocatedBed = findNextAvailableBed('HDU', hduBeds);
+        
+        if (!allocatedBed) {
+          // Try ICU
+          allocatedBed = findNextAvailableBed('ICU', icuBeds);
+          if (allocatedBed) {
+            status = 'shifted';
+            recommendedWard = 'ICU';
+            message = `HDU not available. Patient shifted to ICU (${allocatedBed}).`;
+          } else {
+            // Try General
+            allocatedBed = findNextAvailableBed('GEN', generalBeds);
+            if (allocatedBed) {
+              status = 'shifted';
+              recommendedWard = 'General';
+              message = `HDU and ICU not available. Patient shifted to General Ward (${allocatedBed}) with close monitoring.`;
+            } else {
+              status = 'alert';
+              message = 'CRITICAL: No beds available in any ward. Immediate action required!';
+            }
+          }
+        } else {
+          message = `Patient will be admitted to HDU (${allocatedBed}).`;
+        }
+      } else if (severityScore >= 8 && severityScore <= 10) {
+        // Critical severity - ICU required, HDU as backup
+        recommendedWard = 'ICU';
+        allocatedBed = findNextAvailableBed('ICU', icuBeds);
+        
+        if (!allocatedBed) {
+          // Try HDU
+          allocatedBed = findNextAvailableBed('HDU', hduBeds);
+          if (allocatedBed) {
+            status = 'shifted';
+            recommendedWard = 'HDU';
+            message = `ICU not available. Patient shifted to HDU (${allocatedBed}). Close monitoring required!`;
+          } else {
+            // Try General
+            allocatedBed = findNextAvailableBed('GEN', generalBeds);
+            if (allocatedBed) {
+              status = 'alert';
+              recommendedWard = 'General';
+              message = `CRITICAL: ICU and HDU full. Patient placed in General Ward (${allocatedBed}). Requires intensive monitoring!`;
+            } else {
+              status = 'alert';
+              message = 'CRITICAL ALERT: No beds available in any ward. Patient in emergency status!';
+            }
+          }
+        } else {
+          message = `Patient will be admitted to ICU (${allocatedBed}).`;
+        }
       }
+
+      setBedAvailability({
+        allocatedBed,
+        severityScore,
+        recommendedWard,
+        status,
+        message
+      });
+      
+      console.log('Bed allocation result:', {
+        allocatedBed,
+        severityScore,
+        recommendedWard,
+        status,
+        message,
+        occupiedBeds: Array.from(occupiedBeds),
+        severityDetails: severityResult
+      });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch bed availability';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to check bed availability';
       setError(errorMessage);
-      console.error('Error fetching bed availability:', err);
+      console.error('Error checking bed availability:', err);
     } finally {
       setIsLoading(false);
     }
@@ -517,14 +654,78 @@ const NewAdmission: React.FC = () => {
                   </p>
                   
                   {bedAvailability && (
-                    <div className="mb-4 p-3 bg-[#1c271c] rounded-lg border border-[#3b543b]">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Occupied Beds:</span>
-                        <span className="text-white font-bold">{bedAvailability.occupiedBeds}</span>
+                    <div className="mb-4 space-y-3">
+                      {/* Severity Score */}
+                      <div className="p-3 bg-[#1c271c] rounded-lg border border-[#3b543b]">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Severity Score:</span>
+                          <span className={`text-xl font-bold ${
+                            bedAvailability.severityScore >= 8 ? 'text-red-500' :
+                            bedAvailability.severityScore >= 5 ? 'text-orange-400' :
+                            bedAvailability.severityScore >= 3 ? 'text-yellow-400' :
+                            'text-[#13ec13]'
+                          }`}>
+                            {bedAvailability.severityScore}/10
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Available Range:</span>
-                        <span className="text-white font-bold">{bedAvailability.availableBedRange}</span>
+
+                      {/* Recommended Ward */}
+                      <div className="p-3 bg-[#1c271c] rounded-lg border border-[#3b543b]">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Recommended Ward:</span>
+                          <span className="text-white font-bold">{bedAvailability.recommendedWard}</span>
+                        </div>
+                      </div>
+
+                      {/* Allocated Bed */}
+                      <div className={`p-4 rounded-lg border-2 ${
+                        bedAvailability.status === 'alert' ? 'bg-red-500/10 border-red-500/50' :
+                        bedAvailability.status === 'waiting' ? 'bg-yellow-500/10 border-yellow-500/50' :
+                        bedAvailability.status === 'shifted' ? 'bg-orange-500/10 border-orange-500/50' :
+                        'bg-[#13ec13]/10 border-[#13ec13]/50'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <span className={`material-symbols-outlined text-2xl ${
+                            bedAvailability.status === 'alert' ? 'text-red-500 animate-pulse' :
+                            bedAvailability.status === 'waiting' ? 'text-yellow-400' :
+                            bedAvailability.status === 'shifted' ? 'text-orange-400' :
+                            'text-[#13ec13]'
+                          }`}>
+                            {bedAvailability.status === 'alert' ? 'error' :
+                             bedAvailability.status === 'waiting' ? 'schedule' :
+                             bedAvailability.status === 'shifted' ? 'swap_horiz' :
+                             'check_circle'}
+                          </span>
+                          <div className="flex-1">
+                            {bedAvailability.allocatedBed && (
+                              <div className="mb-2">
+                                <span className="text-gray-400 text-xs uppercase tracking-wide">Bed ID:</span>
+                                <div className="text-2xl font-bold text-white mt-1">
+                                  {bedAvailability.allocatedBed}
+                                </div>
+                                {bedAvailability.status === 'waiting' && (
+                                  <div className="mt-1 inline-block px-2 py-0.5 bg-yellow-500/20 border border-yellow-500/50 rounded text-xs text-yellow-400 font-bold">
+                                    WAITING
+                                  </div>
+                                )}
+                                {bedAvailability.status === 'alert' && (
+                                  <div className="mt-1 inline-block px-2 py-0.5 bg-red-500/20 border border-red-500/50 rounded text-xs text-red-400 font-bold animate-pulse">
+                                    ALERT
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <p className={`text-sm ${
+                              bedAvailability.status === 'alert' ? 'text-red-300' :
+                              bedAvailability.status === 'waiting' ? 'text-yellow-300' :
+                              bedAvailability.status === 'shifted' ? 'text-orange-300' :
+                              'text-gray-300'
+                            }`}>
+                              {bedAvailability.message}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

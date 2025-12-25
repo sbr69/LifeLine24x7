@@ -44,6 +44,19 @@ const initAdmittedPatientsDb = async () => {
       console.log('✅ Table verification successful');
     }
 
+    // Initialize beds table
+    console.log('\n🛏️  Initializing Beds database...');
+    const bedsSchemaPath = path.join(__dirname, 'bedsSchema.sql');
+    const bedsSchemaSql = fs.readFileSync(bedsSchemaPath, 'utf8');
+    
+    await pool.query(bedsSchemaSql);
+    
+    console.log('✅ Beds database initialized successfully');
+    console.log('   - Table: beds created');
+    console.log('   - 10 ICU beds (ICU-01 to ICU-10)');
+    console.log('   - 10 HDU beds (HDU-01 to HDU-10)');
+    console.log('   - 10 GENERAL beds (GEN-01 to GEN-10)');
+
   } catch (error) {
     console.error('❌ Error initializing Admitted Patients database:', error.message);
     throw error;
@@ -59,10 +72,11 @@ const dropAdmittedPatientsTable = async () => {
     console.log('⚠️  Dropping Admitted Patients table...');
     
     await pool.query('DROP TABLE IF EXISTS admitted_patients CASCADE');
+    await pool.query('DROP TABLE IF EXISTS beds CASCADE');
     await pool.query('DROP SEQUENCE IF EXISTS patient_id_seq CASCADE');
     await pool.query('DROP SEQUENCE IF EXISTS bed_id_seq CASCADE');
     
-    console.log('✅ Admitted Patients table dropped successfully');
+    console.log('✅ Admitted Patients and Beds tables dropped successfully');
   } catch (error) {
     console.error('❌ Error dropping Admitted Patients table:', error.message);
     throw error;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Patient } from '../../types';
-import { getAllAdmissions, type AdmittedPatient } from '../../services/admissionService';
-import { transformAdmittedPatientsToUI, countCriticalPatients, countAdmittedToday } from '../../utils/dataTransformers';
+import { getAllAdmissions, getDashboardStats } from '../../services/admissionService';
+import { transformAdmittedPatientsToUI } from '../../utils/dataTransformers';
+import { getSeverityColor, getSeverityTextColor, getConditionStyles } from './SeverityScore';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +11,21 @@ const Dashboard: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedWard, setSelectedWard] = useState<'all' | 'ICU' | 'HDU' | 'General'>('all');
+  const [showWardDropdown, setShowWardDropdown] = useState(false);
+  
+  // Dashboard statistics
+  const [dashboardStats, setDashboardStats] = useState({
+    totalPatients: 0,
+    criticalPatients: 0,
+    admittedToday: 0,
+    bedOccupancy: {
+      icuOccupied: 0,
+      hduOccupied: 0,
+      generalOccupied: 0
+    }
+  });
   
   // Get bed data from localStorage
   const [bedData, setBedData] = useState({
@@ -17,6 +33,21 @@ const Dashboard: React.FC = () => {
     hduBeds: 0,
     generalBeds: 0
   });
+
+  // Fetch dashboard statistics from API
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await getDashboardStats();
+      
+      if (response.success) {
+        setDashboardStats(response.data);
+        console.log('Loaded dashboard statistics from database:', response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      // Keep existing stats on error
+    }
+  };
 
   // Fetch admitted patients from API
   const fetchAdmittedPatients = async () => {
@@ -31,13 +62,13 @@ const Dashboard: React.FC = () => {
         setPatients(transformedPatients);
         console.log('Loaded admitted patients from database:', transformedPatients);
       } else {
-        // Keep dummy data if no patients in database yet
-        console.log('No patients in database yet, using dummy data');
+        setPatients([]);
+        console.log('No patients in database yet');
       }
     } catch (err) {
       console.error('Error fetching admitted patients:', err);
       setError('Failed to load patient data. Using cached data.');
-      // Keep existing patients (dummy data) on error
+      // Keep existing patients on error
     } finally {
       setIsLoading(false);
     }
@@ -61,40 +92,18 @@ const Dashboard: React.FC = () => {
       generalBeds
     });
 
-    // Fetch admitted patients
+    // Fetch dashboard stats and admitted patients
+    fetchDashboardStats();
     fetchAdmittedPatients();
 
     // Set up auto-refresh every 30 seconds
     const intervalId = setInterval(() => {
+      fetchDashboardStats();
       fetchAdmittedPatients();
     }, 30000);
 
     return () => clearInterval(intervalId);
   }, []);
-
-  const getConditionStyles = (condition: Patient['condition']) => {
-    const styles = {
-      Critical: 'bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]',
-      Serious: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]',
-      Stable: 'bg-[#13ec13]/10 text-[#13ec13] border-[#13ec13]/20 shadow-[0_0_10px_rgba(19,236,19,0.2)]',
-      Recovering: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.2)]'
-    };
-    return styles[condition];
-  };
-
-  const getSeverityColor = (score: number) => {
-    if (score >= 8) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
-    if (score >= 5) return 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]';
-    if (score >= 3) return 'bg-[#13ec13] shadow-[0_0_8px_rgba(19,236,19,0.6)]';
-    return 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]';
-  };
-
-  const getSeverityTextColor = (score: number) => {
-    if (score >= 8) return 'text-red-400';
-    if (score >= 5) return 'text-yellow-400';
-    if (score >= 3) return 'text-[#13ec13]';
-    return 'text-emerald-400';
-  };
 
   const getBedAvailabilityStatus = (occupied: number, total: number) => {
     if (total === 0) return { label: 'No Beds', color: 'text-gray-400', bgColor: 'bg-gray-500', borderColor: 'border-gray-500/50', glowColor: 'hover:shadow-[0_0_20px_rgba(156,163,175,0.1)]', indicatorBg: 'bg-gray-500' };
@@ -137,6 +146,37 @@ const Dashboard: React.FC = () => {
     navigate('/login');
   };
 
+  // Filter and sort patients
+  const filteredAndSortedPatients = patients
+    .filter(patient => {
+      // Filter by search query
+      const matchesSearch = searchQuery === '' || 
+        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        patient.id.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by ward
+      let matchesWard = selectedWard === 'all';
+      
+      if (!matchesWard) {
+        if (selectedWard === 'ICU') {
+          matchesWard = patient.bedId.startsWith('ICU');
+        } else if (selectedWard === 'HDU') {
+          matchesWard = patient.bedId.startsWith('HDU');
+        } else if (selectedWard === 'General') {
+          matchesWard = patient.bedId.startsWith('GEN');
+        }
+      }
+      
+      return matchesSearch && matchesWard;
+    })
+    .sort((a, b) => {
+      if (sortOrder === 'asc') {
+        return a.severityScore - b.severityScore;
+      } else {
+        return b.severityScore - a.severityScore;
+      }
+    });
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#111811]">
       {/* Sidebar */}
@@ -153,18 +193,27 @@ const Dashboard: React.FC = () => {
         </div>
 
         <nav className="flex-1 space-y-2 px-4">
-          <a className="flex items-center gap-3 rounded-xl bg-[#13ec13]/10 px-4 py-3 text-sm font-semibold text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.1)] border border-[#13ec13]/20" href="#">
+          <button 
+            onClick={() => navigate('/overview')}
+            className="flex items-center gap-3 rounded-xl bg-[#13ec13]/10 px-4 py-3 text-sm font-semibold text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.1)] border border-[#13ec13]/20 w-full"
+          >
             <span className="material-symbols-outlined text-[#13ec13]">dashboard</span>
             Dashboard
-          </a>
-          <a className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1" href="#">
+          </button>
+          <button 
+            onClick={() => navigate('/staff')}
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1 w-full"
+          >
             <span className="material-symbols-outlined">medical_services</span>
             Staff
-          </a>
-          <a className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1" href="#">
+          </button>
+          <button 
+            onClick={() => navigate('/reports')}
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1 w-full"
+          >
             <span className="material-symbols-outlined">analytics</span>
             Reports
-          </a>
+          </button>
         </nav>
 
         <div className="px-4 mt-auto">
@@ -207,7 +256,10 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <button 
-                onClick={fetchAdmittedPatients}
+                onClick={() => {
+                  fetchDashboardStats();
+                  fetchAdmittedPatients();
+                }}
                 className="flex items-center gap-2 rounded-full bg-[#1c271c] border border-[#3b543b] px-4 py-2 text-sm font-medium text-[#9db99d] hover:text-white hover:border-[#13ec13] hover:bg-[#13ec13]/5 transition-all"
                 title="Refresh patient data"
               >
@@ -215,7 +267,7 @@ const Dashboard: React.FC = () => {
                 Refresh
               </button>
               <button 
-                onClick={() => navigate('/dashboard/new-admission')}
+                onClick={() => navigate('/new-admission')}
                 className="flex items-center gap-2 rounded-full bg-[#13ec13] px-6 py-3 text-sm font-bold text-[#111811] hover:bg-[#3bf03b] shadow-[0_0_20px_rgba(19,236,19,0.4)] hover:shadow-[0_0_30px_rgba(19,236,19,0.6)] hover:scale-105 transition-all duration-300"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
@@ -242,46 +294,41 @@ const Dashboard: React.FC = () => {
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Total Occupancy */}
             {(() => {
-              const totalOccupied = 3 + 8 + 42; // ICU + HDU + General
+              const totalOccupied = dashboardStats.bedOccupancy.icuOccupied + dashboardStats.bedOccupancy.hduOccupied + dashboardStats.bedOccupancy.generalOccupied;
               const totalBeds = bedData.icuBeds + bedData.hduBeds + bedData.generalBeds;
               const occupancyPercentage = totalBeds > 0 ? Math.round((totalOccupied / totalBeds) * 100) : 0;
+              const availableBeds = totalBeds - totalOccupied;
               
               return (
-                <div className="rounded-2xl border border-[#3b543b]/50 bg-[#1c271c] p-6 shadow-lg hover:border-[#13ec13]/30 transition-colors group">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="rounded-xl bg-blue-500/10 p-3 text-blue-400 border border-blue-500/20 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all">
-                      <span className="material-symbols-outlined">ward</span>
+                <>
+                  {/* Total Occupancy Card */}
+                  <div className="rounded-2xl border border-[#3b543b]/50 bg-[#1c271c] p-6 shadow-lg hover:border-[#13ec13]/30 transition-colors group">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="rounded-xl bg-blue-500/10 p-3 text-blue-400 border border-blue-500/20 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] transition-all">
+                        <span className="material-symbols-outlined">ward</span>
+                      </div>
                     </div>
-                    <span className="flex items-center gap-1 text-xs font-bold text-[#13ec13] bg-[#13ec13]/10 px-2.5 py-1 rounded-full border border-[#13ec13]/20">
-                      <span className="material-symbols-outlined text-sm">trending_up</span> +2.5%
-                    </span>
+                    <h3 className="text-4xl font-bold text-white">{occupancyPercentage}%</h3>
+                    <p className="text-sm font-medium text-[#9db99d] mt-1">Total Occupancy</p>
+                    <div className="mt-4 h-1.5 w-full rounded-full bg-[#111811]">
+                      <div className="h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{width: `${occupancyPercentage}%`}}></div>
+                    </div>
                   </div>
-                  <h3 className="text-4xl font-bold text-white">{occupancyPercentage}%</h3>
-                  <p className="text-sm font-medium text-[#9db99d] mt-1">Total Occupancy</p>
-                  <div className="mt-4 h-1.5 w-full rounded-full bg-[#111811]">
-                    <div className="h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{width: `${occupancyPercentage}%`}}></div>
+
+                  {/* Total Admitted Patients */}
+                  <div className="rounded-2xl border border-[#3b543b]/50 bg-[#1c271c] p-6 shadow-lg hover:border-[#13ec13]/30 transition-colors group">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="rounded-xl bg-[#13ec13]/10 p-3 text-[#13ec13] border border-[#13ec13]/20 group-hover:shadow-[0_0_15px_rgba(19,236,19,0.2)] transition-all">
+                        <span className="material-symbols-outlined">monitor_heart</span>
+                      </div>
+                      <span className="text-xs font-medium text-[#9db99d]">{availableBeds} Available</span>
+                    </div>
+                    <h3 className="text-4xl font-bold text-white">{dashboardStats.totalPatients.toString().padStart(2, '0')}</h3>
+                    <p className="text-sm font-medium text-[#9db99d] mt-1">Total Admitted Patients</p>
                   </div>
-                </div>
+                </>
               );
             })()}
-
-            {/* Admitted Today */}
-            <div className="rounded-2xl border border-[#3b543b]/50 bg-[#1c271c] p-6 shadow-lg hover:border-[#13ec13]/30 transition-colors group">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="rounded-xl bg-[#13ec13]/10 p-3 text-[#13ec13] border border-[#13ec13]/20 group-hover:shadow-[0_0_15px_rgba(19,236,19,0.2)] transition-all">
-                  <span className="material-symbols-outlined">monitor_heart</span>
-                </div>
-                <span className="text-xs font-medium text-[#9db99d]">12 Available</span>
-              </div>
-              <h3 className="text-4xl font-bold text-white">45</h3>
-              <p className="text-sm font-medium text-[#9db99d] mt-1">Admitted Today</p>
-              <div className="mt-4 flex gap-1.5">
-                <div className="h-1.5 flex-1 rounded-full bg-[#13ec13]/30"></div>
-                <div className="h-1.5 flex-1 rounded-full bg-[#13ec13]/60"></div>
-                <div className="h-1.5 flex-1 rounded-full bg-[#13ec13] shadow-[0_0_8px_rgba(19,236,19,0.5)]"></div>
-                <div className="h-1.5 flex-1 rounded-full bg-[#111811]"></div>
-              </div>
-            </div>
 
             {/* Critical Patients */}
             <div className="rounded-2xl border border-[#3b543b]/50 bg-[#1c271c] p-6 shadow-lg hover:border-[#13ec13]/30 transition-colors group">
@@ -289,9 +336,11 @@ const Dashboard: React.FC = () => {
                 <div className="rounded-xl bg-orange-500/10 p-3 text-orange-400 border border-orange-500/20 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.2)] transition-all">
                   <span className="material-symbols-outlined">emergency</span>
                 </div>
-                <span className="text-xs font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20">High Alert</span>
+                {dashboardStats.criticalPatients > 0 && (
+                  <span className="text-xs font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full border border-orange-500/20">High Alert</span>
+                )}
               </div>
-              <h3 className="text-4xl font-bold text-white">08</h3>
+              <h3 className="text-4xl font-bold text-white">{dashboardStats.criticalPatients.toString().padStart(2, '0')}</h3>
               <p className="text-sm font-medium text-[#9db99d] mt-1">Critical Patients</p>
               <div className="mt-4 flex items-center gap-2 text-xs text-orange-400/80">
                 <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]"></span> Requires immediate attention
@@ -321,7 +370,7 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {/* ICU Beds */}
               {(() => {
-                const icuOccupied = 3;
+                const icuOccupied = dashboardStats.bedOccupancy.icuOccupied;
                 const icuStatus = getBedAvailabilityStatus(icuOccupied, bedData.icuBeds);
                 const icuPercentage = bedData.icuBeds > 0 ? (icuOccupied / bedData.icuBeds) * 100 : 0;
                 return (
@@ -347,7 +396,7 @@ const Dashboard: React.FC = () => {
 
               {/* HDU Beds */}
               {(() => {
-                const hduOccupied = 8;
+                const hduOccupied = dashboardStats.bedOccupancy.hduOccupied;
                 const hduStatus = getBedAvailabilityStatus(hduOccupied, bedData.hduBeds);
                 const hduPercentage = bedData.hduBeds > 0 ? (hduOccupied / bedData.hduBeds) * 100 : 0;
                 return (
@@ -373,7 +422,7 @@ const Dashboard: React.FC = () => {
 
               {/* General Beds */}
               {(() => {
-                const generalOccupied = 42;
+                const generalOccupied = dashboardStats.bedOccupancy.generalOccupied;
                 const generalStatus = getBedAvailabilityStatus(generalOccupied, bedData.generalBeds);
                 const generalPercentage = bedData.generalBeds > 0 ? (generalOccupied / bedData.generalBeds) * 100 : 0;
                 return (
@@ -446,8 +495,101 @@ const Dashboard: React.FC = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <button className="rounded-xl border border-[#3b543b] bg-[#152015] px-4 py-2 text-xs font-bold text-[#9db99d] hover:bg-[#1c271c] hover:text-white hover:border-[#9db99d] transition-all">All Wards</button>
-                  <button className="rounded-xl border border-transparent px-4 py-2 text-xs font-bold text-[#9db99d] hover:text-white transition-all">ICU Only</button>
+                  
+                  {/* Ward Filter Dropdown */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowWardDropdown(!showWardDropdown)}
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 w-[110px] justify-between ${
+                        showWardDropdown 
+                          ? 'bg-[#13ec13]/10 border-[#13ec13]/50 text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.15)]'
+                          : 'bg-[#152015] border-[#3b543b] text-[#9db99d] hover:bg-[#1c271c] hover:text-white hover:border-[#9db99d]'
+                      }`}
+                    >
+                      <span className="truncate">{selectedWard === 'all' ? 'All Wards' : selectedWard}</span>
+                      <span className={`material-symbols-outlined text-[14px] transition-transform duration-200 flex-shrink-0 ${
+                        showWardDropdown ? 'rotate-180' : ''
+                      }`}>
+                        expand_more
+                      </span>
+                    </button>
+                    {showWardDropdown && (
+                      <>
+                        {/* Backdrop for closing dropdown */}
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setShowWardDropdown(false)}
+                        ></div>
+                        
+                        {/* Dropdown Menu */}
+                        <div className="absolute top-full mt-1.5 right-0 z-50 w-[110px] rounded-lg border border-[#3b543b] bg-[#1c271c] shadow-lg overflow-hidden">
+                          <button
+                            onClick={() => {
+                              setSelectedWard('all');
+                              setShowWardDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold transition-all ${
+                              selectedWard === 'all'
+                                ? 'bg-[#13ec13]/10 text-[#13ec13]'
+                                : 'text-[#9db99d] hover:bg-[#152015] hover:text-white'
+                            }`}
+                          >
+                            All Wards
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedWard('ICU');
+                              setShowWardDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold transition-all ${
+                              selectedWard === 'ICU'
+                                ? 'bg-[#13ec13]/10 text-[#13ec13]'
+                                : 'text-[#9db99d] hover:bg-[#152015] hover:text-white'
+                            }`}
+                          >
+                            ICU
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedWard('HDU');
+                              setShowWardDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold transition-all ${
+                              selectedWard === 'HDU'
+                                ? 'bg-[#13ec13]/10 text-[#13ec13]'
+                                : 'text-[#9db99d] hover:bg-[#152015] hover:text-white'
+                            }`}
+                          >
+                            HDU
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedWard('General');
+                              setShowWardDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-bold transition-all ${
+                              selectedWard === 'General'
+                                ? 'bg-[#13ec13]/10 text-[#13ec13]'
+                                : 'text-[#9db99d] hover:bg-[#152015] hover:text-white'
+                            }`}
+                          >
+                            General
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Sort Button */}
+                  <button 
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="rounded-xl border border-[#3b543b] bg-[#152015] px-4 py-2 text-xs font-bold text-[#9db99d] hover:bg-[#1c271c] hover:text-white hover:border-[#9db99d] transition-all flex items-center gap-2"
+                  >
+                    Sort
+                    <span className="material-symbols-outlined text-[16px]">
+                      {sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                    </span>
+                  </button>
                 </div>
               </div>
 
@@ -465,7 +607,7 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#3b543b]/30">
-                    {patients.map((patient) => (
+                    {filteredAndSortedPatients.map((patient) => (
                       <tr key={patient.id} className="group hover:bg-[#13ec13]/5 transition-colors">
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
@@ -506,10 +648,6 @@ const Dashboard: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="border-t border-[#3b543b]/50 bg-[#152015] px-6 py-4 text-center">
-                <button className="text-xs font-bold text-[#13ec13] hover:text-[#3bf03b] hover:underline transition-colors">View All Patients</button>
               </div>
             </div>
           </div>
