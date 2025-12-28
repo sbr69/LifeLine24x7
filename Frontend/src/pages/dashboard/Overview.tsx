@@ -579,7 +579,7 @@ const Dashboard: React.FC = () => {
                   <div className="relative">
                     <button 
                       onClick={() => setShowWardDropdown(!showWardDropdown)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 w-[100px] justify-between ${
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 w-[120px] justify-between ${
                         showWardDropdown 
                           ? 'bg-[#13ec13]/10 border-[#13ec13]/50 text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.15)]'
                           : 'bg-[#152015] border-[#3b543b] text-[#9db99d] hover:bg-[#1c271c] hover:text-white hover:border-[#9db99d]'
@@ -601,7 +601,7 @@ const Dashboard: React.FC = () => {
                         ></div>
                         
                         {/* Dropdown Menu */}
-                        <div className="absolute top-full mt-1.5 right-0 z-50 w-[100px] rounded-lg border border-[#3b543b] bg-[#1c271c] shadow-lg overflow-hidden">
+                        <div className="absolute top-full mt-1.5 right-0 z-50 w-[120px] rounded-lg border border-[#3b543b] bg-[#1c271c] shadow-lg overflow-hidden">
                           <button
                             onClick={() => {
                               setSelectedWard('all');

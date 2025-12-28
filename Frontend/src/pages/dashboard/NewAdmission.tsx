@@ -16,10 +16,22 @@ interface PatientData {
   name: string;
   age: string;
   gender: 'male' | 'female' | 'other' | '';
+  bloodGroup: string;
+  emergencyContact: string;
   presentingAilment: string;
   medicalHistory: string;
   clinicalNotes: string;
   labResults: string;
+  // Optional fields
+  govIdType?: string;
+  idPicture?: string;
+  patientPicture?: string;
+  guardianName?: string;
+  guardianRelation?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  whatsappNumber?: string;
+  address?: string;
 }
 
 const NewAdmission: React.FC = () => {
@@ -38,10 +50,22 @@ const NewAdmission: React.FC = () => {
     name: '',
     age: '',
     gender: '',
+    bloodGroup: '',
+    emergencyContact: '',
     presentingAilment: '',
     medicalHistory: '',
     clinicalNotes: '',
     labResults: '',
+    // Optional fields
+    govIdType: '',
+    idPicture: '',
+    patientPicture: '',
+    guardianName: '',
+    guardianRelation: '',
+    guardianPhone: '',
+    guardianEmail: '',
+    whatsappNumber: '',
+    address: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -70,8 +94,8 @@ const NewAdmission: React.FC = () => {
       setSuccessMessage(null);
 
       // Validate required fields
-      if (!patientData.name || !patientData.age || !patientData.gender) {
-        setError('Please fill in all required fields: Name, Age, and Gender');
+      if (!patientData.name || !patientData.age || !patientData.gender || !patientData.bloodGroup || !patientData.emergencyContact) {
+        setError('Please fill in all required fields: Name, Age, Gender, Blood Group, and Emergency Contact');
         return;
       }
 
@@ -80,6 +104,8 @@ const NewAdmission: React.FC = () => {
         name: patientData.name,
         age: parseInt(patientData.age),
         gender: patientData.gender,
+        bloodGroup: patientData.bloodGroup || undefined,
+        emergencyContact: patientData.emergencyContact || undefined,
         presentingAilment: patientData.presentingAilment || undefined,
         medicalHistory: patientData.medicalHistory || undefined,
         clinicalNotes: patientData.clinicalNotes || undefined,
@@ -90,6 +116,16 @@ const NewAdmission: React.FC = () => {
         temperature: vitals.temperature ? parseFloat(vitals.temperature) : undefined,
         bpSystolic: vitals.bpSystolic ? parseInt(vitals.bpSystolic) : undefined,
         bpDiastolic: vitals.bpDiastolic ? parseInt(vitals.bpDiastolic) : undefined,
+        // Optional fields
+        govIdType: patientData.govIdType || undefined,
+        idPicture: patientData.idPicture || undefined,
+        patientPicture: patientData.patientPicture || undefined,
+        guardianName: patientData.guardianName || undefined,
+        guardianRelation: patientData.guardianRelation || undefined,
+        guardianPhone: patientData.guardianPhone || undefined,
+        guardianEmail: patientData.guardianEmail || undefined,
+        whatsappNumber: patientData.whatsappNumber || undefined,
+        address: patientData.address || undefined,
       };
 
       // Call API
@@ -395,57 +431,100 @@ const NewAdmission: React.FC = () => {
             </div>
           )}
 
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column */}
-            <div className="lg:col-span-7 flex flex-col gap-8">
+          {/* Main Grid - Redesigned Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Essential Inputs */}
+            <div className="flex flex-col gap-6">
               {/* Patient Demographics */}
               <section className="flex flex-col gap-4">
-                <h2 className="text-white text-[22px] font-bold leading-tight px-1 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#13ec13]">badge</span>
-                  Patient Demographics
-                </h2>
-                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] flex flex-col gap-6 shadow-sm">
-                  <label className="flex flex-col">
-                    <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                      Patient Name
-                    </span>
-                    <input
-                      className="form-input block w-full rounded-xl border px-4 py-3.5 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80"
-                      placeholder="Enter full name"
-                      type="text"
-                      value={patientData.name}
-                      onChange={(e) => handlePatientDataChange('name', e.target.value)}
-                    />
-                  </label>
-                  <label className="flex flex-col">
-                    <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Age</span>
-                    <input
-                      className="form-input block w-full rounded-xl border px-4 py-3.5 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80"
-                      placeholder="Age"
-                      type="number"
-                      value={patientData.age}
-                      onChange={(e) => handlePatientDataChange('age', e.target.value)}
-                    />
-                  </label>
-                  <div className="flex flex-col">
-                    <span className="text-slate-300 text-sm font-semibold pb-3 ml-1">Gender</span>
-                    <div className="flex flex-wrap gap-3">
-                      {(['male', 'female', 'other'] as const).map((gender) => (
-                        <label key={gender} className="group cursor-pointer">
-                          <input
-                            className="peer sr-only"
-                            name="gender"
-                            type="radio"
-                            checked={patientData.gender === gender}
-                            onChange={() => handlePatientDataChange('gender', gender)}
-                          />
-                          <div className="flex items-center justify-center rounded-xl border border-[#3b543b] bg-[#1c271c] px-6 h-12 text-[#9db99d] transition-all shadow-sm peer-checked:border-[#13ec13] peer-checked:text-[#13ec13] peer-checked:bg-[#13ec13]/10 peer-checked:shadow-[0_0_15px_rgba(19,236,19,0.2)] group-hover:border-[#3b543b]/80">
-                            <span className="text-sm font-bold capitalize">{gender}</span>
-                          </div>
-                        </label>
-                      ))}
+                <div className="flex items-center gap-2 px-1">
+                  <div className="p-2 rounded-lg bg-[#13ec13]/10 border border-[#13ec13]/20 shadow-[0_0_10px_rgba(19,236,19,0.15)]">
+                    <span className="material-symbols-outlined text-[#13ec13] text-xl">badge</span>
+                  </div>
+                  <div>
+                    <h2 className="text-white text-xl font-bold leading-tight">Patient Demographics</h2>
+                    <p className="text-xs text-[#9db99d]">Required information</p>
+                  </div>
+                </div>
+                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-[#13ec13]/30 transition-all">
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="col-span-2 flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1 flex items-center gap-1">
+                        Patient Name <span className="text-red-400">*</span>
+                      </span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Enter full name"
+                        type="text"
+                        value={patientData.name}
+                        onChange={(e) => handlePatientDataChange('name', e.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1 flex items-center gap-1">
+                        Age <span className="text-red-400">*</span>
+                      </span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Years"
+                        type="number"
+                        value={patientData.age}
+                        onChange={(e) => handlePatientDataChange('age', e.target.value)}
+                      />
+                    </label>
+                    <div className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1 flex items-center gap-1">
+                        Gender <span className="text-red-400">*</span>
+                      </span>
+                      <div className="flex gap-2">
+                        {(['male', 'female', 'other'] as const).map((gender) => (
+                          <label key={gender} className="flex-1 group cursor-pointer">
+                            <input
+                              className="peer sr-only"
+                              name="gender"
+                              type="radio"
+                              checked={patientData.gender === gender}
+                              onChange={() => handlePatientDataChange('gender', gender)}
+                            />
+                            <div className="flex items-center justify-center rounded-lg border border-[#3b543b] bg-[#152015] h-11 text-[#9db99d] text-xs font-bold transition-all peer-checked:border-[#13ec13] peer-checked:text-[#13ec13] peer-checked:bg-[#13ec13]/10 peer-checked:shadow-[0_0_10px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80">
+                              <span className="capitalize">{gender}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </div>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1 flex items-center gap-1">
+                        Blood Group <span className="text-red-400">*</span>
+                      </span>
+                      <select
+                        className="form-select block w-full rounded-xl border px-4 py-3 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] cursor-pointer"
+                        value={patientData.bloodGroup}
+                        onChange={(e) => handlePatientDataChange('bloodGroup', e.target.value)}
+                      >
+                        <option value="" className="bg-[#152015] text-gray-400">Select blood group</option>
+                        <option value="A+" className="bg-[#152015] text-white">A+</option>
+                        <option value="A-" className="bg-[#152015] text-white">A-</option>
+                        <option value="B+" className="bg-[#152015] text-white">B+</option>
+                        <option value="B-" className="bg-[#152015] text-white">B-</option>
+                        <option value="AB+" className="bg-[#152015] text-white">AB+</option>
+                        <option value="AB-" className="bg-[#152015] text-white">AB-</option>
+                        <option value="O+" className="bg-[#152015] text-white">O+</option>
+                        <option value="O-" className="bg-[#152015] text-white">O-</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1 flex items-center gap-1">
+                        Emergency Contact <span className="text-red-400">*</span>
+                      </span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Phone number"
+                        type="tel"
+                        value={patientData.emergencyContact}
+                        onChange={(e) => handlePatientDataChange('emergencyContact', e.target.value)}
+                      />
+                    </label>
                   </div>
                 </div>
               </section>
@@ -453,212 +532,156 @@ const NewAdmission: React.FC = () => {
               {/* Current Vitals */}
               <section className="flex flex-col gap-4">
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="text-white text-[22px] font-bold leading-tight flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-500 animate-pulse">
-                      ecg_heart
-                    </span>
-                    Current Vitals
-                  </h2>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#13ec13] bg-[#13ec13]/10 px-3 py-1 rounded-full border border-[#13ec13]/20">
-                    Live Input
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
+                      <span className="material-symbols-outlined text-red-500 text-xl animate-pulse">ecg_heart</span>
+                    </div>
+                    <div>
+                      <h2 className="text-white text-xl font-bold leading-tight">Current Vitals</h2>
+                      <p className="text-xs text-[#9db99d]">Live patient monitoring</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#13ec13] bg-[#13ec13]/10 px-2.5 py-1 rounded-full border border-[#13ec13]/20">
+                    Live
                   </span>
                 </div>
-                <div className="bg-[#1c271c] rounded-3xl p-6 border border-[#3b543b] shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#13ec13]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 relative z-10">
+                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-red-500/30 transition-all relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                  <div className="grid grid-cols-2 gap-3 relative z-10">
                     {/* Heart Rate */}
-                    <div className="bg-[#152015] p-5 rounded-2xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group shadow-sm hover:shadow-[0_0_15px_rgba(19,236,19,0.1)]">
+                    <div className="bg-[#152015] p-4 rounded-xl border border-[#3b543b] hover:border-red-500/50 transition-all group">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-gray-400 text-sm font-medium">Heart Rate</span>
-                        <span className="material-symbols-outlined text-red-500">favorite</span>
+                        <span className="text-gray-400 text-xs font-medium">Heart Rate</span>
+                        <span className="material-symbols-outlined text-red-500 text-lg">favorite</span>
                       </div>
                       <div className="flex items-baseline gap-2">
                         <input
-                          className="w-24 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none focus:placeholder-transparent transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
                           placeholder="--"
                           type="number"
                           value={vitals.heartRate}
                           onChange={(e) => handleVitalChange('heartRate', e.target.value)}
                         />
-                        <span className="text-xs text-gray-400 font-bold uppercase">bpm</span>
+                        <span className="text-xs text-gray-400 font-bold">bpm</span>
                       </div>
                     </div>
 
                     {/* SpO2 */}
-                    <div className="bg-[#152015] p-5 rounded-2xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group shadow-sm hover:shadow-[0_0_15px_rgba(19,236,19,0.1)]">
+                    <div className="bg-[#152015] p-4 rounded-xl border border-[#3b543b] hover:border-blue-500/50 transition-all group">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-gray-400 text-sm font-medium">SpO2</span>
-                        <span className="material-symbols-outlined text-blue-400">water_drop</span>
+                        <span className="text-gray-400 text-xs font-medium">SpO2</span>
+                        <span className="material-symbols-outlined text-blue-400 text-lg">water_drop</span>
                       </div>
                       <div className="flex items-baseline gap-2">
                         <input
-                          className="w-24 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none focus:placeholder-transparent transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
                           placeholder="--"
                           type="number"
                           value={vitals.spo2}
                           onChange={(e) => handleVitalChange('spo2', e.target.value)}
                         />
-                        <span className="text-xs text-gray-400 font-bold uppercase">%</span>
+                        <span className="text-xs text-gray-400 font-bold">%</span>
                       </div>
                     </div>
 
                     {/* Respiratory Rate */}
-                    <div className="bg-[#152015] p-5 rounded-2xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group shadow-sm hover:shadow-[0_0_15px_rgba(19,236,19,0.1)]">
+                    <div className="bg-[#152015] p-4 rounded-xl border border-[#3b543b] hover:border-white/30 transition-all group">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-gray-400 text-sm font-medium">Resp. Rate</span>
-                        <span className="material-symbols-outlined text-white/50">air</span>
+                        <span className="text-gray-400 text-xs font-medium">Resp. Rate</span>
+                        <span className="material-symbols-outlined text-white/50 text-lg">air</span>
                       </div>
                       <div className="flex items-baseline gap-2">
                         <input
-                          className="w-24 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none focus:placeholder-transparent transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
                           placeholder="--"
                           type="number"
                           value={vitals.respRate}
                           onChange={(e) => handleVitalChange('respRate', e.target.value)}
                         />
-                        <span className="text-xs text-gray-400 font-bold uppercase">bpm</span>
+                        <span className="text-xs text-gray-400 font-bold">bpm</span>
                       </div>
                     </div>
 
                     {/* Temperature */}
-                    <div className="bg-[#152015] p-5 rounded-2xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group shadow-sm hover:shadow-[0_0_15px_rgba(19,236,19,0.1)]">
+                    <div className="bg-[#152015] p-4 rounded-xl border border-[#3b543b] hover:border-orange-500/50 transition-all group">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-gray-400 text-sm font-medium">Temp</span>
-                        <span className="material-symbols-outlined text-orange-400">
-                          thermostat
-                        </span>
+                        <span className="text-gray-400 text-xs font-medium">Temperature</span>
+                        <span className="material-symbols-outlined text-orange-400 text-lg">thermostat</span>
                       </div>
                       <div className="flex items-baseline gap-2">
                         <input
-                          className="w-24 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none focus:placeholder-transparent transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
                           placeholder="--"
                           type="number"
                           value={vitals.temperature}
                           onChange={(e) => handleVitalChange('temperature', e.target.value)}
                         />
-                        <span className="text-xs text-gray-400 font-bold uppercase">°C</span>
+                        <span className="text-xs text-gray-400 font-bold">°C</span>
                       </div>
                     </div>
 
                     {/* Blood Pressure */}
-                    <div className="col-span-1 sm:col-span-2 md:col-span-2 bg-[#152015] p-5 rounded-2xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group shadow-sm hover:shadow-[0_0_15px_rgba(19,236,19,0.1)]">
+                    <div className="col-span-2 bg-[#152015] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all group">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-gray-400 text-sm font-medium">
-                          Blood Pressure
-                        </span>
-                        <span className="material-symbols-outlined text-[#13ec13]">compress</span>
+                        <span className="text-gray-400 text-xs font-medium">Blood Pressure</span>
+                        <span className="material-symbols-outlined text-[#13ec13] text-lg">compress</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <input
-                          className="w-20 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none text-right transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none text-right"
                           placeholder="120"
                           type="number"
                           value={vitals.bpSystolic}
                           onChange={(e) => handleVitalChange('bpSystolic', e.target.value)}
                         />
-                        <span className="text-2xl text-gray-400 font-light">/</span>
+                        <span className="text-xl text-gray-400 font-light">/</span>
                         <input
-                          className="w-20 bg-transparent text-3xl font-bold text-white placeholder-gray-600 focus:outline-none transition-colors"
+                          className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
                           placeholder="80"
                           type="number"
                           value={vitals.bpDiastolic}
                           onChange={(e) => handleVitalChange('bpDiastolic', e.target.value)}
                         />
-                        <span className="text-xs text-gray-400 font-bold uppercase ml-auto">
-                          mmHg
-                        </span>
+                        <span className="text-xs text-gray-400 font-bold ml-auto">mmHg</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Connect Device Button */}
-                  <div className="mt-6 pt-4 border-t border-[#3b543b]">
+                  <div className="mt-4 pt-4 border-t border-[#3b543b]">
                     <button
                       onClick={handleConnectDevice}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl h-12 bg-[#13ec13] text-green-950 text-base font-bold hover:bg-[#3bf03b] transition-all duration-300 shadow-[0_0_30px_rgba(19,236,19,0.4),0_0_60px_rgba(19,236,19,0.2)] hover:shadow-[0_0_50px_rgba(19,236,19,0.7),0_0_100px_rgba(19,236,19,0.4)] hover:scale-105 active:scale-[0.98]"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl h-11 bg-[#13ec13] text-green-950 text-sm font-bold hover:bg-[#3bf03b] transition-all duration-300 shadow-[0_0_20px_rgba(19,236,19,0.3)] hover:shadow-[0_0_30px_rgba(19,236,19,0.5)] hover:scale-105 active:scale-[0.98]"
                     >
-                      <span className="material-symbols-outlined">monitor_heart</span>
+                      <span className="material-symbols-outlined text-lg">monitor_heart</span>
                       <span>Connect Device</span>
                     </button>
                   </div>
                 </div>
               </section>
-            </div>
 
-            {/* Right Column */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              <div className="sticky top-24 flex flex-col gap-8 max-w-xl">
-                {/* Clinical Information */}
-                <section className="flex flex-col gap-4">
-                  <h2 className="text-white text-[22px] font-bold leading-tight px-1 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#13ec13]">clinical_notes</span>
-                    Clinical Information
-                  </h2>
-                  <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] flex flex-col gap-6 shadow-sm">
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Presenting Ailment
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80 min-h-[89px]"
-                        placeholder="e.g. Severe Chest Pain"
-                        value={patientData.presentingAilment}
-                        onChange={(e) =>
-                          handlePatientDataChange('presentingAilment', e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Medical History
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80 min-h-[89px]"
-                        placeholder="Previous conditions, surgeries, allergies..."
-                        value={patientData.medicalHistory}
-                        onChange={(e) =>
-                          handlePatientDataChange('medicalHistory', e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Clinical Notes
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80 min-h-[89px]"
-                        placeholder="Doctor's observations..."
-                        value={patientData.clinicalNotes}
-                        onChange={(e) => handlePatientDataChange('clinicalNotes', e.target.value)}
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Lab Results Summary
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] hover:border-[#3b543b]/80 min-h-[89px]"
-                        placeholder="Key findings from blood work..."
-                        value={patientData.labResults}
-                        onChange={(e) => handlePatientDataChange('labResults', e.target.value)}
-                      />
-                    </label>
+              {/* Bed Allocation */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+                    <span className="material-symbols-outlined text-purple-400 text-xl">bed</span>
                   </div>
-                </section>
-
-                {/* Bed Allocation */}
-                <div className="bg-[#13ec13]/10 border border-[#13ec13]/20 rounded-2xl p-6 shadow-[0_0_15px_rgba(19,236,19,0.1)]">
-                  <h3 className="text-white text-lg font-bold mb-2">Bed Allocation</h3>
-                  <p className="text-gray-400 text-sm mb-4">
-                    Based on the vitals, the system will recommend a ward.
+                  <div>
+                    <h2 className="text-white text-xl font-bold leading-tight">Bed Allocation</h2>
+                    <p className="text-xs text-[#9db99d]">Check availability & severity</p>
+                  </div>
+                </div>
+                <div className="bg-[#13ec13]/10 border border-[#13ec13]/20 rounded-2xl p-6 shadow-[0_0_15px_rgba(19,236,19,0.1)] hover:border-[#13ec13]/30 transition-all">
+                  <p className="text-gray-300 text-sm mb-4">
+                    Based on the vitals entered, the system will calculate severity score and recommend an appropriate ward.
                   </p>
                   
                   {bedAvailability && (
                     <div className="mb-4 space-y-3">
                       {/* Severity Score */}
-                      <div className="p-3 bg-[#1c271c] rounded-lg border border-[#3b543b]">
+                      <div className="p-3 bg-[#1c271c] rounded-xl border border-[#3b543b]">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm">Severity Score:</span>
+                          <span className="text-gray-400 text-sm font-medium">Severity Score:</span>
                           <span className={`text-xl font-bold ${
                             bedAvailability.severityScore >= 8 ? 'text-red-500' :
                             bedAvailability.severityScore >= 5 ? 'text-orange-400' :
@@ -671,15 +694,15 @@ const NewAdmission: React.FC = () => {
                       </div>
 
                       {/* Recommended Ward */}
-                      <div className="p-3 bg-[#1c271c] rounded-lg border border-[#3b543b]">
+                      <div className="p-3 bg-[#1c271c] rounded-xl border border-[#3b543b]">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm">Recommended Ward:</span>
+                          <span className="text-gray-400 text-sm font-medium">Recommended Ward:</span>
                           <span className="text-white font-bold">{bedAvailability.recommendedWard}</span>
                         </div>
                       </div>
 
                       {/* Allocated Bed */}
-                      <div className={`p-4 rounded-lg border-2 ${
+                      <div className={`p-4 rounded-xl border-2 ${
                         bedAvailability.status === 'alert' ? 'bg-red-500/10 border-red-500/50' :
                         bedAvailability.status === 'waiting' ? 'bg-yellow-500/10 border-yellow-500/50' :
                         bedAvailability.status === 'shifted' ? 'bg-orange-500/10 border-orange-500/50' :
@@ -733,13 +756,260 @@ const NewAdmission: React.FC = () => {
                   <button
                     onClick={handleCheckAvailability}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl h-12 bg-[#13ec13] text-green-950 text-base font-bold hover:bg-[#3bf03b] transition-all duration-300 shadow-[0_0_30px_rgba(19,236,19,0.4),0_0_60px_rgba(19,236,19,0.2)] hover:shadow-[0_0_50px_rgba(19,236,19,0.7),0_0_100px_rgba(19,236,19,0.4)] hover:scale-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl h-12 bg-[#13ec13] text-green-950 text-base font-bold hover:bg-[#3bf03b] transition-all duration-300 shadow-[0_0_30px_rgba(19,236,19,0.4)] hover:shadow-[0_0_50px_rgba(19,236,19,0.7)] hover:scale-105 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     <span className="material-symbols-outlined">bed</span>
                     <span>{isLoading ? 'Checking...' : 'Check Availability'}</span>
                   </button>
                 </div>
-              </div>
+              </section>
+
+              {/* Clinical Information */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-start gap-2 px-1">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                    <span className="material-symbols-outlined text-cyan-400 text-xl">clinical_notes</span>
+                  </div>
+                  <div>
+                    <h2 className="text-white text-xl font-bold leading-tight">Clinical Information</h2>
+                    <p className="text-xs text-[#9db99d]">Medical details & notes</p>
+                  </div>
+                </div>
+                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-cyan-500/30 transition-all">
+                  <div className="grid grid-cols-2 gap-5">
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                        Presenting Ailment
+                      </span>
+                      <textarea
+                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                        placeholder="Current symptoms and complaints..."
+                        value={patientData.presentingAilment}
+                        onChange={(e) =>
+                          handlePatientDataChange('presentingAilment', e.target.value)
+                        }
+                      />
+                    </label>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                        Clinical Notes
+                      </span>
+                      <textarea
+                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                        placeholder="Doctor's observations..."
+                        value={patientData.clinicalNotes}
+                        onChange={(e) => handlePatientDataChange('clinicalNotes', e.target.value)}
+                      />
+                    </label>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                        Medical History
+                      </span>
+                      <textarea
+                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                        placeholder="Previous conditions, surgeries, allergies..."
+                        value={patientData.medicalHistory}
+                        onChange={(e) =>
+                          handlePatientDataChange('medicalHistory', e.target.value)
+                        }
+                      />
+                    </label>
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                        Lab Results Summary
+                      </span>
+                      <textarea
+                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                        placeholder="Key findings from blood work..."
+                        value={patientData.labResults}
+                        onChange={(e) => handlePatientDataChange('labResults', e.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Right Column - Additional Information */}
+            <div className="flex flex-col gap-6">
+              {/* Identity & Authority */}
+              <section className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.15)]">
+                    <span className="material-symbols-outlined text-blue-400 text-xl">info</span>
+                  </div>
+                  <div>
+                    <h2 className="text-white text-xl font-bold leading-tight">Identity & Authority</h2>
+                    <p className="text-xs text-[#9db99d]">Identification & contact details</p>
+                  </div>
+                </div>
+                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-blue-500/30 transition-all">
+                  <div className="space-y-5">
+                    {/* ID & Patient Pictures */}
+                    <div className="space-y-4">
+                      <h3 className="text-[#9db99d] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">badge</span>
+                        Identification Photos
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Patient Picture
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#13ec13] file:text-green-950 hover:file:bg-[#3bf03b] file:cursor-pointer"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Handle file upload here
+                                console.log('Patient Picture selected:', file);
+                              }
+                            }}
+                          />
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Type of Govt ID
+                          </span>
+                          <select
+                            className="form-select block w-full rounded-xl border px-4 py-3 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] cursor-pointer"
+                            value={patientData.govIdType}
+                            onChange={(e) => handlePatientDataChange('govIdType', e.target.value)}
+                          >
+                            <option value="" className="bg-[#152015] text-gray-400">Select ID type</option>
+                            <option value="ABHA ID" className="bg-[#152015] text-white">ABHA ID (Ayushman Bharat Health Account)</option>
+                            <option value="Ayushman Bharat / PM-JAY Card" className="bg-[#152015] text-white">Ayushman Bharat / PM-JAY Card</option>
+                            <option value="Aadhaar Card" className="bg-[#152015] text-white">Aadhaar Card</option>
+                            <option value="Passport" className="bg-[#152015] text-white">Passport</option>
+                            <option value="Voter ID" className="bg-[#152015] text-white">Voter ID</option>
+                            <option value="Driving License" className="bg-[#152015] text-white">Driving License</option>
+                            <option value="Swasthya Sathi" className="bg-[#152015] text-white">Swasthya Sathi</option>
+                            <option value="Aarogyasri" className="bg-[#152015] text-white">Aarogyasri</option>
+                            <option value="ESI Card" className="bg-[#152015] text-white">ESI Card</option>
+                          </select>
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Upload Govt. ID
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#13ec13] file:text-green-950 hover:file:bg-[#3bf03b] file:cursor-pointer"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Handle file upload here
+                                console.log('ID Picture selected:', file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Guardian Information */}
+                    <div className="space-y-4 pt-4 border-t border-[#3b543b]/50">
+                      <h3 className="text-[#9db99d] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">family_restroom</span>
+                        Guardian / Emergency Contact
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Guardian Name
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                            placeholder="Full name"
+                            type="text"
+                            value={patientData.guardianName}
+                            onChange={(e) => handlePatientDataChange('guardianName', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Relationship with patient
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                            placeholder="e.g., Parent"
+                            type="text"
+                            value={patientData.guardianRelation}
+                            onChange={(e) => handlePatientDataChange('guardianRelation', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Guardian Contact
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                            placeholder="Phone number"
+                            type="tel"
+                            value={patientData.guardianPhone}
+                            onChange={(e) => handlePatientDataChange('guardianPhone', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            Guardian Email
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                            placeholder="Email address"
+                            type="email"
+                            value={patientData.guardianEmail}
+                            onChange={(e) => handlePatientDataChange('guardianEmail', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="flex flex-col">
+                          <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                            WhatsApp (optional)
+                          </span>
+                          <input
+                            className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                            placeholder="WhatsApp number"
+                            type="tel"
+                            value={patientData.whatsappNumber}
+                            onChange={(e) => handlePatientDataChange('whatsappNumber', e.target.value)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-4 pt-4 border-t border-[#3b543b]/50">
+                      <h3 className="text-[#9db99d] text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">home</span>
+                        Address
+                      </h3>
+                      
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                          Full Address
+                        </span>
+                        <textarea
+                          className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[99px]"
+                          placeholder="Street, city, state, postal code"
+                          value={patientData.address}
+                          onChange={(e) => handlePatientDataChange('address', e.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
