@@ -155,17 +155,8 @@ const Dashboard: React.FC = () => {
         patient.id.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Filter by ward
-      let matchesWard = selectedWard === 'all';
-      
-      if (!matchesWard) {
-        if (selectedWard === 'ICU') {
-          matchesWard = patient.bedId.startsWith('ICU');
-        } else if (selectedWard === 'HDU') {
-          matchesWard = patient.bedId.startsWith('HDU');
-        } else if (selectedWard === 'General') {
-          matchesWard = patient.bedId.startsWith('GEN');
-        }
-      }
+      const matchesWard = selectedWard === 'all' || 
+        patient.bedId.startsWith(selectedWard);
       
       return matchesSearch && matchesWard;
     })
@@ -193,24 +184,15 @@ const Dashboard: React.FC = () => {
         </div>
 
         <nav className="flex-1 space-y-2 px-4">
-          <button 
-            onClick={() => navigate('/overview')}
-            className="flex items-center gap-3 rounded-xl bg-[#13ec13]/10 px-4 py-3 text-sm font-semibold text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.1)] border border-[#13ec13]/20 w-full"
-          >
+          <button type="button" onClick={() => navigate('/overview')} className="w-full text-left flex items-center gap-3 rounded-xl bg-[#13ec13]/10 px-4 py-3 text-sm font-semibold text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.1)] border border-[#13ec13]/20">
             <span className="material-symbols-outlined text-[#13ec13]">dashboard</span>
             Dashboard
           </button>
-          <button 
-            onClick={() => navigate('/staff')}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1 w-full"
-          >
+          <button type="button" onClick={() => navigate('/staff')} className="w-full text-left flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1">
             <span className="material-symbols-outlined">medical_services</span>
             Staff
           </button>
-          <button 
-            onClick={() => navigate('/reports')}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1 w-full"
-          >
+          <button type="button" onClick={() => navigate('/reports')} className="w-full text-left flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1">
             <span className="material-symbols-outlined">analytics</span>
             Reports
           </button>
@@ -267,7 +249,7 @@ const Dashboard: React.FC = () => {
                 Refresh
               </button>
               <button 
-                onClick={() => navigate('/new-admission')}
+                onClick={() => navigate('/newadmission')}
                 className="flex items-center gap-2 rounded-full bg-[#13ec13] px-6 py-3 text-sm font-bold text-[#111811] hover:bg-[#3bf03b] shadow-[0_0_20px_rgba(19,236,19,0.4)] hover:shadow-[0_0_30px_rgba(19,236,19,0.6)] hover:scale-105 transition-all duration-300"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
@@ -500,7 +482,7 @@ const Dashboard: React.FC = () => {
                   <div className="relative">
                     <button 
                       onClick={() => setShowWardDropdown(!showWardDropdown)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 w-[110px] justify-between ${
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 w-[100px] justify-between ${
                         showWardDropdown 
                           ? 'bg-[#13ec13]/10 border-[#13ec13]/50 text-[#13ec13] shadow-[0_0_15px_rgba(19,236,19,0.15)]'
                           : 'bg-[#152015] border-[#3b543b] text-[#9db99d] hover:bg-[#1c271c] hover:text-white hover:border-[#9db99d]'
@@ -522,7 +504,7 @@ const Dashboard: React.FC = () => {
                         ></div>
                         
                         {/* Dropdown Menu */}
-                        <div className="absolute top-full mt-1.5 right-0 z-50 w-[110px] rounded-lg border border-[#3b543b] bg-[#1c271c] shadow-lg overflow-hidden">
+                        <div className="absolute top-full mt-1.5 right-0 z-50 w-[100px] rounded-lg border border-[#3b543b] bg-[#1c271c] shadow-lg overflow-hidden">
                           <button
                             onClick={() => {
                               setSelectedWard('all');

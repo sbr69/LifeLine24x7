@@ -99,7 +99,10 @@ const Staff: React.FC = () => {
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export List
               </button>
-              <button className="flex items-center gap-2 rounded-full bg-[#13ec13] px-6 py-3 text-sm font-bold text-[#111811] hover:bg-[#3bf03b] shadow-[0_0_20px_rgba(19,236,19,0.4)] hover:shadow-[0_0_30px_rgba(19,236,19,0.6)] hover:scale-105 transition-all duration-300">
+              <button 
+                onClick={() => navigate('/new-staff')}
+                className="flex items-center gap-2 rounded-full bg-[#13ec13] px-6 py-3 text-sm font-bold text-[#111811] hover:bg-[#3bf03b] shadow-[0_0_20px_rgba(19,236,19,0.4)] hover:shadow-[0_0_30px_rgba(19,236,19,0.6)] hover:scale-105 transition-all duration-300"
+              >
                 <span className="material-symbols-outlined text-xl">person_add</span>
                 Add New Staff
               </button>
