@@ -161,28 +161,30 @@ const createAdmission = async (req, res, next) => {
     }
 
     if (temperature && (temperature < 20.0 || temperature > 50.0)) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        message: 'Temperature must be between 20.0 and 50.0°C'
-      });
-    }
-
-    // Generate unique patient ID
-    const patientIdResult = await client.query("SELECT nextval('patient_id_seq') as patient_id");
+    // Generate unique patient ID (5 digits)
+    const patientIdResult = await client.query('SELECT nextval(\'patient_id_seq\') as patient_id');
     const patientId = patientIdResult.rows[0].patient_id;
 
     // Calculate severity score first to determine bed type
-    const vitals = { heartRate, spo2, respRate, temperature, bpSystolic };
+    const vitals = {
+      heartRate,
+      spo2,
+      respRate,
+      temperature,
+      bpSystolic
+    };
     const severityScore = calculateSeverityScore(vitals);
     const condition = determineCondition(severityScore);
-
+    
     // Determine bed type based on severity
     let bedType = 'GENERAL';
-    if (severityScore >= 7 || condition === 'critical') bedType = 'ICU';
-    else if (severityScore >= 4 || condition === 'serious') bedType = 'HDU';
+    if (severityScore >= 7 || condition === 'critical') {
+      bedType = 'ICU';
+    } else if (severityScore >= 4 || condition === 'serious') {
+      bedType = 'HDU';
+    }
 
-    // Find an available bed of the required type (lock row)
+    // Find an available bed of the required type
     const bedResult = await client.query(
       'SELECT bed_id FROM beds WHERE bed_type = $1 AND is_available = TRUE ORDER BY bed_number LIMIT 1 FOR UPDATE',
       [bedType]
@@ -252,14 +254,6 @@ const createAdmission = async (req, res, next) => {
       respRate || null,
       temperature || null,
       JSON.stringify(bloodPressure),
-      measuredTime,
-      presentingAilment || null,
-      medicalHistory || null,
-      clinicalNotes || null,
-      labResults || null,
-      severityScore,
-      condition,
-      doctor
     ];
 
     const result = await client.query(insertQuery, values);

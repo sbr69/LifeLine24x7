@@ -26,7 +26,7 @@ export interface AdmittedPatient {
   patient_name: string;
   age: number;
   gender: string;
-  bed_id: number;
+  bed_id: string; // Changed from number to string (format: "ICU-01", "HDU-05", "GEN-12")
   admission_date: string;
   heart_rate: number | null;
   spo2: number | null;

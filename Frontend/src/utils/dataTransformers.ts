@@ -32,26 +32,6 @@ const mapConditionToUI = (condition: string): Patient['condition'] => {
 };
 
 /**
- * Format bed ID to match UI format (e.g., "10" -> "GEN-10" or "ICU-10")
- */
-const formatBedId = (bedId: number, severityScore: number): string => {
-  // Determine ward type based on severity
-  // High severity (8-10) -> ICU
-  // Medium severity (5-7) -> HDU
-  // Low severity (0-4) -> General
-  
-  let wardPrefix = 'GEN';
-  
-  if (severityScore >= 8) {
-    wardPrefix = 'ICU';
-  } else if (severityScore >= 5) {
-    wardPrefix = 'HDU';
-  }
-  
-  return `${wardPrefix}-${bedId.toString().padStart(2, '0')}`;
-};
-
-/**
  * Transform AdmittedPatient from API to Patient for UI
  */
 export const transformAdmittedPatientToUI = (admittedPatient: AdmittedPatient): Patient => {
@@ -59,7 +39,7 @@ export const transformAdmittedPatientToUI = (admittedPatient: AdmittedPatient): 
     id: `P-${admittedPatient.patient_id}`,
     name: admittedPatient.patient_name,
     initials: getInitials(admittedPatient.patient_name),
-    bedId: formatBedId(admittedPatient.bed_id, admittedPatient.severity_score),
+    bedId: admittedPatient.bed_id, // bed_id is already formatted (e.g., "ICU-01", "HDU-05", "GEN-12")
     admissionDate: admittedPatient.admission_date,
     severityScore: admittedPatient.severity_score,
     condition: mapConditionToUI(admittedPatient.condition),

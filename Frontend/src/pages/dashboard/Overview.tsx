@@ -15,6 +15,36 @@ const Dashboard: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<'all' | 'ICU' | 'HDU' | 'General'>('all');
   const [showWardDropdown, setShowWardDropdown] = useState(false);
   
+  // Patient Details Modal State
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  
+  // Modal Form State
+  const [modalVitals, setModalVitals] = useState({
+    heartRate: '',
+    spo2: '',
+    respRate: '',
+    temperature: '',
+    bpSystolic: '',
+    bpDiastolic: '',
+  });
+  
+  const [modalPatientData, setModalPatientData] = useState({
+    guardianName: '',
+    guardianPhone: '',
+    guardianRelation: '',
+    emergencyContact: '',
+    address: '',
+    bloodGroup: '',
+    presentingAilment: '',
+    medicalHistory: '',
+    clinicalNotes: '',
+    labResults: '',
+  });
+  
+  const [modalBedId, setModalBedId] = useState('');
+  const [modalSeverityScore, setModalSeverityScore] = useState(0);
+  
   // Dashboard statistics
   const [dashboardStats, setDashboardStats] = useState({
     totalPatients: 0,
@@ -144,6 +174,73 @@ const Dashboard: React.FC = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
     navigate('/login');
+  };
+
+  const openPatientDetailsModal = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setShowDetailsModal(true);
+    
+    // Pre-populate modal with patient data (you can fetch more detailed data from API here)
+    setModalVitals({
+      heartRate: '',
+      spo2: '',
+      respRate: '',
+      temperature: '',
+      bpSystolic: '',
+      bpDiastolic: '',
+    });
+    
+    setModalPatientData({
+      guardianName: '',
+      guardianPhone: '',
+      guardianRelation: '',
+      emergencyContact: '',
+      address: '',
+      bloodGroup: '',
+      presentingAilment: '',
+      medicalHistory: '',
+      clinicalNotes: '',
+      labResults: '',
+    });
+    
+    setModalBedId(patient.bedId);
+    setModalSeverityScore(patient.severityScore);
+  };
+
+  const closePatientDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedPatient(null);
+  };
+
+  const handleModalVitalChange = (field: string, value: string) => {
+    setModalVitals(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleModalPatientDataChange = (field: string, value: string) => {
+    setModalPatientData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRecheckStatus = () => {
+    // Calculate new severity score based on vitals
+    const vitalSigns = {
+      heartRate: modalVitals.heartRate ? parseInt(modalVitals.heartRate) : undefined,
+      spo2: modalVitals.spo2 ? parseInt(modalVitals.spo2) : undefined,
+      respRate: modalVitals.respRate ? parseInt(modalVitals.respRate) : undefined,
+      temperature: modalVitals.temperature ? parseFloat(modalVitals.temperature) : undefined,
+      bpSystolic: modalVitals.bpSystolic ? parseInt(modalVitals.bpSystolic) : undefined,
+      bpDiastolic: modalVitals.bpDiastolic ? parseInt(modalVitals.bpDiastolic) : undefined,
+    };
+    
+    // Import and use the calculateSeverityScore function
+    // For now, we'll just alert - you can implement full calculation
+    alert('Status rechecked! Implement full severity calculation here.');
+  };
+
+  const handleUpdatePatient = async () => {
+    // Implement update patient logic here
+    alert('Patient details updated successfully!');
+    closePatientDetailsModal();
+    fetchAdmittedPatients();
   };
 
   // Filter and sort patients
@@ -622,7 +719,12 @@ const Dashboard: React.FC = () => {
                         <td className="px-6 py-5 text-[#9db99d]">{patient.doctor}</td>
                         <td className="px-6 py-5 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button className="rounded-lg bg-[#13ec13]/10 border border-[#13ec13]/20 px-3 py-1.5 text-xs font-bold text-[#13ec13] hover:bg-[#13ec13]/20 hover:shadow-[0_0_10px_rgba(19,236,19,0.2)] transition-all">Details</button>
+                            <button 
+                              onClick={() => openPatientDetailsModal(patient)}
+                              className="rounded-lg bg-[#13ec13]/10 border border-[#13ec13]/20 px-3 py-1.5 text-xs font-bold text-[#13ec13] hover:bg-[#13ec13]/20 hover:shadow-[0_0_10px_rgba(19,236,19,0.2)] transition-all"
+                            >
+                              Details
+                            </button>
                             <button className="rounded-lg bg-transparent border border-[#3b543b] px-3 py-1.5 text-xs font-bold text-[#9db99d] hover:text-white hover:border-white/30 transition-all">Discharge</button>
                           </div>
                         </td>
@@ -635,6 +737,401 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Patient Details Modal */}
+      {showDetailsModal && selectedPatient && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#1c271c] rounded-3xl border border-[#3b543b] shadow-[0_0_60px_rgba(19,236,19,0.2)] overflow-hidden">
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 bg-[#1c271c]/95 backdrop-blur-md border-b border-[#3b543b]/50 px-8 py-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-[#152015] flex items-center justify-center text-sm font-bold text-white border-2 border-[#13ec13]/50">
+                  {selectedPatient.initials}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">{selectedPatient.name}</h2>
+                  <p className="text-sm text-[#9db99d] font-mono">ID: {selectedPatient.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={closePatientDetailsModal}
+                className="h-10 w-10 rounded-full bg-[#152015] border border-[#3b543b] text-[#9db99d] hover:text-white hover:border-[#13ec13]/50 hover:bg-[#13ec13]/10 transition-all flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="overflow-y-auto max-h-[calc(90vh-200px)] px-8 py-6">
+              <style>
+                {`
+                  /* Hide number input spinners */
+                  input[type=number]::-webkit-inner-spin-button,
+                  input[type=number]::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                  }
+                  input[type=number] {
+                    -moz-appearance: textfield;
+                  }
+                `}
+              </style>
+
+              {/* Guardian & Contact Information Section */}
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                    <span className="material-symbols-outlined">contacts</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Guardian & Contact Information</h3>
+                </div>
+                <div className="bg-[#152015] rounded-2xl p-6 border border-[#3b543b]/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Guardian Name</span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Enter guardian name"
+                        type="text"
+                        value={modalPatientData.guardianName}
+                        onChange={(e) => handleModalPatientDataChange('guardianName', e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Guardian Phone</span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Enter phone number"
+                        type="tel"
+                        value={modalPatientData.guardianPhone}
+                        onChange={(e) => handleModalPatientDataChange('guardianPhone', e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Relation to Patient</span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="e.g., Spouse, Parent, Sibling"
+                        type="text"
+                        value={modalPatientData.guardianRelation}
+                        onChange={(e) => handleModalPatientDataChange('guardianRelation', e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Emergency Contact</span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="Alternative contact number"
+                        type="tel"
+                        value={modalPatientData.emergencyContact}
+                        onChange={(e) => handleModalPatientDataChange('emergencyContact', e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Blood Group</span>
+                      <input
+                        className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                        placeholder="e.g., A+, O-, AB+"
+                        type="text"
+                        value={modalPatientData.bloodGroup}
+                        onChange={(e) => handleModalPatientDataChange('bloodGroup', e.target.value)}
+                      />
+                    </label>
+                    
+                    <label className="flex flex-col md:col-span-2">
+                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Address</span>
+                      <textarea
+                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[80px]"
+                        placeholder="Enter full address"
+                        value={modalPatientData.address}
+                        onChange={(e) => handleModalPatientDataChange('address', e.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column - Vitals & Bed Allocation */}
+                <div className="flex flex-col gap-8">
+                  {/* Current Vitals */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                        <span className="material-symbols-outlined animate-pulse">ecg_heart</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Update Vitals</h3>
+                    </div>
+                    <div className="bg-[#152015] rounded-2xl p-6 border border-[#3b543b]/50">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Heart Rate */}
+                        <div className="bg-[#1c271c] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-gray-400 text-xs font-medium">Heart Rate</span>
+                            <span className="material-symbols-outlined text-red-500 text-lg">favorite</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <input
+                              className="w-20 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
+                              placeholder="--"
+                              type="number"
+                              value={modalVitals.heartRate}
+                              onChange={(e) => handleModalVitalChange('heartRate', e.target.value)}
+                            />
+                            <span className="text-xs text-gray-400 font-bold">bpm</span>
+                          </div>
+                        </div>
+
+                        {/* SpO2 */}
+                        <div className="bg-[#1c271c] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-gray-400 text-xs font-medium">SpO2</span>
+                            <span className="material-symbols-outlined text-blue-400 text-lg">water_drop</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <input
+                              className="w-20 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
+                              placeholder="--"
+                              type="number"
+                              value={modalVitals.spo2}
+                              onChange={(e) => handleModalVitalChange('spo2', e.target.value)}
+                            />
+                            <span className="text-xs text-gray-400 font-bold">%</span>
+                          </div>
+                        </div>
+
+                        {/* Respiratory Rate */}
+                        <div className="bg-[#1c271c] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-gray-400 text-xs font-medium">Resp. Rate</span>
+                            <span className="material-symbols-outlined text-white/50 text-lg">air</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <input
+                              className="w-20 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
+                              placeholder="--"
+                              type="number"
+                              value={modalVitals.respRate}
+                              onChange={(e) => handleModalVitalChange('respRate', e.target.value)}
+                            />
+                            <span className="text-xs text-gray-400 font-bold">bpm</span>
+                          </div>
+                        </div>
+
+                        {/* Temperature */}
+                        <div className="bg-[#1c271c] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-gray-400 text-xs font-medium">Temperature</span>
+                            <span className="material-symbols-outlined text-orange-400 text-lg">thermostat</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <input
+                              className="w-20 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
+                              placeholder="--"
+                              type="number"
+                              value={modalVitals.temperature}
+                              onChange={(e) => handleModalVitalChange('temperature', e.target.value)}
+                            />
+                            <span className="text-xs text-gray-400 font-bold">°C</span>
+                          </div>
+                        </div>
+
+                        {/* Blood Pressure */}
+                        <div className="col-span-1 sm:col-span-2 bg-[#1c271c] p-4 rounded-xl border border-[#3b543b] hover:border-[#13ec13]/50 transition-all">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-gray-400 text-xs font-medium">Blood Pressure</span>
+                            <span className="material-symbols-outlined text-[#13ec13] text-lg">compress</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none text-right"
+                              placeholder="120"
+                              type="number"
+                              value={modalVitals.bpSystolic}
+                              onChange={(e) => handleModalVitalChange('bpSystolic', e.target.value)}
+                            />
+                            <span className="text-xl text-gray-400">/</span>
+                            <input
+                              className="w-16 bg-transparent text-2xl font-bold text-white placeholder-gray-600 focus:outline-none"
+                              placeholder="80"
+                              type="number"
+                              value={modalVitals.bpDiastolic}
+                              onChange={(e) => handleModalVitalChange('bpDiastolic', e.target.value)}
+                            />
+                            <span className="text-xs text-gray-400 font-bold ml-auto">mmHg</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleRecheckStatus}
+                        className="w-full mt-4 flex items-center justify-center gap-2 rounded-xl h-11 bg-[#13ec13] text-green-950 text-sm font-bold hover:bg-[#3bf03b] transition-all duration-300 shadow-[0_0_20px_rgba(19,236,19,0.3)] hover:shadow-[0_0_30px_rgba(19,236,19,0.5)]"
+                      >
+                        <span className="material-symbols-outlined">refresh</span>
+                        Recheck Status & Calculate Severity
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* Bed Allocation & Severity */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                        <span className="material-symbols-outlined">hotel</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Bed Allocation & Severity</h3>
+                    </div>
+                    <div className="bg-[#152015] rounded-2xl p-6 border border-[#3b543b]/50 space-y-4">
+                      {/* Current Bed */}
+                      <div className="p-4 bg-[#1c271c] rounded-xl border border-[#3b543b]">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-400 text-sm font-medium">Current Bed</span>
+                          <span className="text-[#13ec13] font-bold text-lg">{selectedPatient.bedId}</span>
+                        </div>
+                      </div>
+
+                      {/* Severity Score */}
+                      <div className="p-4 bg-[#1c271c] rounded-xl border border-[#3b543b]">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-gray-400 text-sm font-medium">Severity Score</span>
+                          <span className={`text-2xl font-bold ${getSeverityTextColor(modalSeverityScore)}`}>
+                            {modalSeverityScore.toFixed(1)}/10
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-[#111811] overflow-hidden">
+                          <div className={`h-full ${getSeverityColor(modalSeverityScore)}`} style={{width: `${modalSeverityScore * 10}%`}}></div>
+                        </div>
+                      </div>
+
+                      {/* Change Bed */}
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Change Bed Allocation</span>
+                        <input
+                          className="form-input block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)]"
+                          placeholder="e.g., ICU-01, HDU-05, GEN-12"
+                          type="text"
+                          value={modalBedId}
+                          onChange={(e) => setModalBedId(e.target.value)}
+                        />
+                        <span className="text-xs text-gray-500 mt-2 ml-1">Format: ICU-XX, HDU-XX, or GEN-XX</span>
+                      </label>
+
+                      {/* Current Condition */}
+                      <div className="p-4 bg-[#1c271c] rounded-xl border border-[#3b543b]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-sm font-medium">Current Condition</span>
+                          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border ${getConditionStyles(selectedPatient.condition)}`}>
+                            {selectedPatient.condition}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                {/* Right Column - Clinical Information */}
+                <div className="flex flex-col gap-8">
+                  <section>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-[#13ec13]/10 border border-[#13ec13]/20 text-[#13ec13]">
+                        <span className="material-symbols-outlined">clinical_notes</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Clinical Information</h3>
+                    </div>
+                    <div className="bg-[#152015] rounded-2xl p-6 border border-[#3b543b]/50 space-y-6">
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Presenting Ailment</span>
+                        <textarea
+                          className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[80px]"
+                          placeholder="Current symptoms and complaints"
+                          value={modalPatientData.presentingAilment}
+                          onChange={(e) => handleModalPatientDataChange('presentingAilment', e.target.value)}
+                        />
+                      </label>
+
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Medical History</span>
+                        <textarea
+                          className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[80px]"
+                          placeholder="Previous conditions, surgeries, allergies"
+                          value={modalPatientData.medicalHistory}
+                          onChange={(e) => handleModalPatientDataChange('medicalHistory', e.target.value)}
+                        />
+                      </label>
+
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Clinical Notes</span>
+                        <textarea
+                          className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[80px]"
+                          placeholder="Doctor's observations and notes"
+                          value={modalPatientData.clinicalNotes}
+                          onChange={(e) => handleModalPatientDataChange('clinicalNotes', e.target.value)}
+                        />
+                      </label>
+
+                      <label className="flex flex-col">
+                        <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">Lab Results Summary</span>
+                        <textarea
+                          className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#1c271c] focus:border-[#13ec13] focus:bg-[#152015] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[80px]"
+                          placeholder="Key findings from lab tests"
+                          value={modalPatientData.labResults}
+                          onChange={(e) => handleModalPatientDataChange('labResults', e.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </section>
+
+                  {/* Patient Demographics Summary */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400">
+                        <span className="material-symbols-outlined">person</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Patient Summary</h3>
+                    </div>
+                    <div className="bg-[#152015] rounded-2xl p-6 border border-[#3b543b]/50">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-[#1c271c] rounded-lg">
+                          <span className="text-gray-400 text-sm">Admission Date:</span>
+                          <span className="text-white font-semibold">{selectedPatient.admissionDate}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-[#1c271c] rounded-lg">
+                          <span className="text-gray-400 text-sm">Assigned Doctor:</span>
+                          <span className="text-white font-semibold">{selectedPatient.doctor}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-[#1c271c] rounded-lg">
+                          <span className="text-gray-400 text-sm">Patient ID:</span>
+                          <span className="text-[#13ec13] font-mono font-semibold">{selectedPatient.id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer - Action Buttons */}
+            <div className="sticky bottom-0 bg-[#1c271c]/95 backdrop-blur-md border-t border-[#3b543b]/50 px-8 py-6 flex items-center justify-end gap-4">
+              <button
+                onClick={closePatientDetailsModal}
+                className="px-6 py-3 rounded-xl border border-[#3b543b] bg-transparent text-[#9db99d] hover:text-white hover:border-white/30 font-bold text-sm transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdatePatient}
+                className="px-8 py-3 rounded-xl bg-[#13ec13] hover:bg-[#3bf03b] text-green-950 font-bold text-sm transition-all duration-300 shadow-[0_0_30px_rgba(19,236,19,0.4)] hover:shadow-[0_0_50px_rgba(19,236,19,0.7)] hover:scale-105"
+              >
+                Update Patient Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
