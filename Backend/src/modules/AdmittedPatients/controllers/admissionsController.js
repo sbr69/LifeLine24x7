@@ -161,6 +161,13 @@ const createAdmission = async (req, res, next) => {
     }
 
     if (temperature && (temperature < 20.0 || temperature > 50.0)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Temperature must be between 20.0 and 50.0°C'
+      });
+    }
+
     // Generate unique patient ID (5 digits)
     const patientIdResult = await client.query('SELECT nextval(\'patient_id_seq\') as patient_id');
     const patientId = patientIdResult.rows[0].patient_id;
