@@ -331,6 +331,35 @@ const NewAdmission: React.FC = () => {
           input[type=number] {
             -moz-appearance: textfield;
           }
+
+          /* Modal animations */
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px) scale(0.95);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out;
+          }
+
+          .animate-slideUp {
+            animation: slideUp 0.3s ease-out;
+          }
         `}
       </style>
       {/* Header */}
@@ -676,83 +705,6 @@ const NewAdmission: React.FC = () => {
                     Based on the vitals entered, the system will calculate severity score and recommend an appropriate ward.
                   </p>
                   
-                  {bedAvailability && (
-                    <div className="mb-4 space-y-3">
-                      {/* Severity Score */}
-                      <div className="p-3 bg-[#1c271c] rounded-xl border border-[#3b543b]">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm font-medium">Severity Score:</span>
-                          <span className={`text-xl font-bold ${
-                            bedAvailability.severityScore >= 8 ? 'text-red-500' :
-                            bedAvailability.severityScore >= 5 ? 'text-orange-400' :
-                            bedAvailability.severityScore >= 3 ? 'text-yellow-400' :
-                            'text-[#13ec13]'
-                          }`}>
-                            {bedAvailability.severityScore}/10
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Recommended Ward */}
-                      <div className="p-3 bg-[#1c271c] rounded-xl border border-[#3b543b]">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm font-medium">Recommended Ward:</span>
-                          <span className="text-white font-bold">{bedAvailability.recommendedWard}</span>
-                        </div>
-                      </div>
-
-                      {/* Allocated Bed */}
-                      <div className={`p-4 rounded-xl border-2 ${
-                        bedAvailability.status === 'alert' ? 'bg-red-500/10 border-red-500/50' :
-                        bedAvailability.status === 'waiting' ? 'bg-yellow-500/10 border-yellow-500/50' :
-                        bedAvailability.status === 'shifted' ? 'bg-orange-500/10 border-orange-500/50' :
-                        'bg-[#13ec13]/10 border-[#13ec13]/50'
-                      }`}>
-                        <div className="flex items-start gap-3">
-                          <span className={`material-symbols-outlined text-2xl ${
-                            bedAvailability.status === 'alert' ? 'text-red-500 animate-pulse' :
-                            bedAvailability.status === 'waiting' ? 'text-yellow-400' :
-                            bedAvailability.status === 'shifted' ? 'text-orange-400' :
-                            'text-[#13ec13]'
-                          }`}>
-                            {bedAvailability.status === 'alert' ? 'error' :
-                             bedAvailability.status === 'waiting' ? 'schedule' :
-                             bedAvailability.status === 'shifted' ? 'swap_horiz' :
-                             'check_circle'}
-                          </span>
-                          <div className="flex-1">
-                            {bedAvailability.allocatedBed && (
-                              <div className="mb-2">
-                                <span className="text-gray-400 text-xs uppercase tracking-wide">Bed ID:</span>
-                                <div className="text-2xl font-bold text-white mt-1">
-                                  {bedAvailability.allocatedBed}
-                                </div>
-                                {bedAvailability.status === 'waiting' && (
-                                  <div className="mt-1 inline-block px-2 py-0.5 bg-yellow-500/20 border border-yellow-500/50 rounded text-xs text-yellow-400 font-bold">
-                                    WAITING
-                                  </div>
-                                )}
-                                {bedAvailability.status === 'alert' && (
-                                  <div className="mt-1 inline-block px-2 py-0.5 bg-red-500/20 border border-red-500/50 rounded text-xs text-red-400 font-bold animate-pulse">
-                                    ALERT
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            <p className={`text-sm ${
-                              bedAvailability.status === 'alert' ? 'text-red-300' :
-                              bedAvailability.status === 'waiting' ? 'text-yellow-300' :
-                              bedAvailability.status === 'shifted' ? 'text-orange-300' :
-                              'text-gray-300'
-                            }`}>
-                              {bedAvailability.message}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
                   <button
                     onClick={handleCheckAvailability}
                     disabled={isLoading}
@@ -761,71 +713,6 @@ const NewAdmission: React.FC = () => {
                     <span className="material-symbols-outlined">bed</span>
                     <span>{isLoading ? 'Checking...' : 'Check Availability'}</span>
                   </button>
-                </div>
-              </section>
-
-              {/* Clinical Information */}
-              <section className="flex flex-col gap-4">
-                <div className="flex items-start gap-2 px-1">
-                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
-                    <span className="material-symbols-outlined text-cyan-400 text-xl">clinical_notes</span>
-                  </div>
-                  <div>
-                    <h2 className="text-white text-xl font-bold leading-tight">Clinical Information</h2>
-                    <p className="text-xs text-[#9db99d]">Medical details & notes</p>
-                  </div>
-                </div>
-                <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-cyan-500/30 transition-all">
-                  <div className="grid grid-cols-2 gap-5">
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Presenting Ailment
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
-                        placeholder="Current symptoms and complaints..."
-                        value={patientData.presentingAilment}
-                        onChange={(e) =>
-                          handlePatientDataChange('presentingAilment', e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Clinical Notes
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
-                        placeholder="Doctor's observations..."
-                        value={patientData.clinicalNotes}
-                        onChange={(e) => handlePatientDataChange('clinicalNotes', e.target.value)}
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Medical History
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
-                        placeholder="Previous conditions, surgeries, allergies..."
-                        value={patientData.medicalHistory}
-                        onChange={(e) =>
-                          handlePatientDataChange('medicalHistory', e.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="flex flex-col">
-                      <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
-                        Lab Results Summary
-                      </span>
-                      <textarea
-                        className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
-                        placeholder="Key findings from blood work..."
-                        value={patientData.labResults}
-                        onChange={(e) => handlePatientDataChange('labResults', e.target.value)}
-                      />
-                    </label>
-                  </div>
                 </div>
               </section>
             </div>
@@ -1012,8 +899,216 @@ const NewAdmission: React.FC = () => {
               </section>
             </div>
           </div>
+
+          {/* Clinical Information - Full Width Below */}
+          <section className="flex flex-col gap-4">
+            <div className="flex items-start gap-2 px-1">
+              <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                <span className="material-symbols-outlined text-cyan-400 text-xl">clinical_notes</span>
+              </div>
+              <div>
+                <h2 className="text-white text-xl font-bold leading-tight">Clinical Information</h2>
+                <p className="text-xs text-[#9db99d]">Medical details & notes</p>
+              </div>
+            </div>
+            <div className="bg-[#1c271c] rounded-2xl p-6 border border-[#3b543b] shadow-lg hover:border-cyan-500/30 transition-all">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <label className="flex flex-col">
+                  <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                    Presenting Ailment
+                  </span>
+                  <textarea
+                    className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                    placeholder="Current symptoms and complaints..."
+                    value={patientData.presentingAilment}
+                    onChange={(e) =>
+                      handlePatientDataChange('presentingAilment', e.target.value)
+                    }
+                  />
+                </label>
+                <label className="flex flex-col">
+                  <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                    Clinical Notes
+                  </span>
+                  <textarea
+                    className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                    placeholder="Doctor's observations..."
+                    value={patientData.clinicalNotes}
+                    onChange={(e) => handlePatientDataChange('clinicalNotes', e.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col">
+                  <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                    Medical History
+                  </span>
+                  <textarea
+                    className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                    placeholder="Previous conditions, surgeries, allergies..."
+                    value={patientData.medicalHistory}
+                    onChange={(e) =>
+                      handlePatientDataChange('medicalHistory', e.target.value)
+                    }
+                  />
+                </label>
+                <label className="flex flex-col">
+                  <span className="text-slate-300 text-sm font-semibold pb-2 ml-1">
+                    Lab Results Summary
+                  </span>
+                  <textarea
+                    className="form-textarea block w-full rounded-xl border px-4 py-3 placeholder:text-gray-500 transition-all resize-y shadow-sm focus:outline-0 focus:ring-0 text-white border-[#3b543b] bg-[#152015] focus:border-[#13ec13] focus:bg-[#111811] placeholder:text-[#9db99d] focus:shadow-[0_0_20px_rgba(19,236,19,0.2)] min-h-[85px]"
+                    placeholder="Key findings from blood work..."
+                    value={patientData.labResults}
+                    onChange={(e) => handlePatientDataChange('labResults', e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
+
+      {/* Bed Availability Card Modal */}
+      {bedAvailability && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#1c271c] rounded-2xl border-2 border-[#3b543b] shadow-2xl max-w-lg w-full transform transition-all animate-slideUp">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#3b543b]/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <span className="material-symbols-outlined text-purple-400 text-xl">bed</span>
+                </div>
+                <h3 className="text-xl font-bold text-white">Bed Availability Results</h3>
+              </div>
+              <button
+                onClick={() => setBedAvailability(null)}
+                className="p-2 rounded-lg hover:bg-[#3b543b]/30 transition-colors"
+              >
+                <span className="material-symbols-outlined text-gray-400 hover:text-white">close</span>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Severity Score */}
+              <div className="p-4 bg-[#152015] rounded-xl border border-[#3b543b]">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-gray-400 text-xs uppercase tracking-wide">Severity Score</span>
+                    <div className={`text-3xl font-bold mt-1 ${
+                      bedAvailability.severityScore >= 8 ? 'text-red-500' :
+                      bedAvailability.severityScore >= 5 ? 'text-orange-400' :
+                      bedAvailability.severityScore >= 3 ? 'text-yellow-400' :
+                      'text-[#13ec13]'
+                    }`}>
+                      {bedAvailability.severityScore}/10
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-xl ${
+                    bedAvailability.severityScore >= 8 ? 'bg-red-500/10' :
+                    bedAvailability.severityScore >= 5 ? 'bg-orange-500/10' :
+                    bedAvailability.severityScore >= 3 ? 'bg-yellow-500/10' :
+                    'bg-[#13ec13]/10'
+                  }`}>
+                    <span className={`material-symbols-outlined text-3xl ${
+                      bedAvailability.severityScore >= 8 ? 'text-red-500' :
+                      bedAvailability.severityScore >= 5 ? 'text-orange-400' :
+                      bedAvailability.severityScore >= 3 ? 'text-yellow-400' :
+                      'text-[#13ec13]'
+                    }`}>
+                      {bedAvailability.severityScore >= 8 ? 'emergency' :
+                       bedAvailability.severityScore >= 5 ? 'warning' :
+                       bedAvailability.severityScore >= 3 ? 'info' :
+                       'check_circle'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommended Ward */}
+              <div className="p-4 bg-[#152015] rounded-xl border border-[#3b543b]">
+                <span className="text-gray-400 text-xs uppercase tracking-wide">Recommended Ward</span>
+                <div className="text-2xl font-bold text-white mt-1">{bedAvailability.recommendedWard}</div>
+              </div>
+
+              {/* Allocated Bed - Main Result */}
+              <div className={`p-5 rounded-xl border-2 ${
+                bedAvailability.status === 'alert' ? 'bg-red-500/10 border-red-500/50' :
+                bedAvailability.status === 'waiting' ? 'bg-yellow-500/10 border-yellow-500/50' :
+                bedAvailability.status === 'shifted' ? 'bg-orange-500/10 border-orange-500/50' :
+                'bg-[#13ec13]/10 border-[#13ec13]/50'
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl flex-shrink-0 ${
+                    bedAvailability.status === 'alert' ? 'bg-red-500/20' :
+                    bedAvailability.status === 'waiting' ? 'bg-yellow-500/20' :
+                    bedAvailability.status === 'shifted' ? 'bg-orange-500/20' :
+                    'bg-[#13ec13]/20'
+                  }`}>
+                    <span className={`material-symbols-outlined text-3xl ${
+                      bedAvailability.status === 'alert' ? 'text-red-500 animate-pulse' :
+                      bedAvailability.status === 'waiting' ? 'text-yellow-400' :
+                      bedAvailability.status === 'shifted' ? 'text-orange-400' :
+                      'text-[#13ec13]'
+                    }`}>
+                      {bedAvailability.status === 'alert' ? 'error' :
+                       bedAvailability.status === 'waiting' ? 'schedule' :
+                       bedAvailability.status === 'shifted' ? 'swap_horiz' :
+                       'check_circle'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    {bedAvailability.allocatedBed && (
+                      <div className="mb-3">
+                        <span className="text-gray-400 text-xs uppercase tracking-wide">Allocated Bed ID</span>
+                        <div className="text-3xl font-bold text-white mt-1">
+                          {bedAvailability.allocatedBed}
+                        </div>
+                        {bedAvailability.status === 'waiting' && (
+                          <div className="mt-2 inline-block px-3 py-1 bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-xs text-yellow-400 font-bold">
+                            WAITING LIST
+                          </div>
+                        )}
+                        {bedAvailability.status === 'alert' && (
+                          <div className="mt-2 inline-block px-3 py-1 bg-red-500/30 border border-red-500/50 rounded-lg text-xs text-red-400 font-bold animate-pulse">
+                            CRITICAL ALERT
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <p className={`text-sm leading-relaxed ${
+                      bedAvailability.status === 'alert' ? 'text-red-300' :
+                      bedAvailability.status === 'waiting' ? 'text-yellow-300' :
+                      bedAvailability.status === 'shifted' ? 'text-orange-300' :
+                      'text-gray-300'
+                    }`}>
+                      {bedAvailability.message}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-[#3b543b]/50 flex gap-3">
+              <button
+                onClick={() => setBedAvailability(null)}
+                className="flex-1 rounded-xl h-11 px-6 bg-[#152015] border border-[#3b543b] text-white text-sm font-bold hover:bg-[#1c271c] transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setBedAvailability(null);
+                  // Could trigger save admission here if needed
+                }}
+                className="flex-1 rounded-xl h-11 px-6 bg-[#13ec13] text-green-950 text-sm font-bold hover:bg-[#3bf03b] transition-all shadow-[0_0_20px_rgba(19,236,19,0.3)] hover:shadow-[0_0_30px_rgba(19,236,19,0.5)]"
+              >
+                Proceed with Admission
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
