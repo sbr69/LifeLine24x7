@@ -55,13 +55,6 @@ const Staff: React.FC = () => {
             <span className="material-symbols-outlined text-[#13ec13]">medical_services</span>
             Staff
           </button>
-          <button 
-            onClick={() => navigate('/reports')}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1 w-full"
-          >
-            <span className="material-symbols-outlined">analytics</span>
-            Reports
-          </button>
         </nav>
 
         <div className="px-4 mt-auto">

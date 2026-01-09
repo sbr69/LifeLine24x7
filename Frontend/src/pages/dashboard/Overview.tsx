@@ -289,10 +289,6 @@ const Dashboard: React.FC = () => {
             <span className="material-symbols-outlined">medical_services</span>
             Staff
           </button>
-          <button type="button" onClick={() => navigate('/reports')} className="w-full text-left flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#9db99d] hover:bg-[#1c271c] hover:text-white transition-all hover:translate-x-1">
-            <span className="material-symbols-outlined">analytics</span>
-            Reports
-          </button>
         </nav>
 
         <div className="px-4 mt-auto">
@@ -725,7 +721,8 @@ const Dashboard: React.FC = () => {
                             >
                               Details
                             </button>
-                            <button className="rounded-lg bg-transparent border border-[#3b543b] px-3 py-1.5 text-xs font-bold text-[#9db99d] hover:text-white hover:border-white/30 transition-all">Discharge</button>
+                            <button className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-500/20 hover:shadow-[0_0_10px_rgba(59,130,246,0.2)] transition-all">Report</button>
+                            <button className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all">Discharge</button>
                           </div>
                         </td>
                       </tr>
