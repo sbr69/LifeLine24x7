@@ -47,4 +47,4 @@ ISC
 
 ---
 
-Built with ❤️ by LifeLine Team
+UNDER DEVELOPMENT
